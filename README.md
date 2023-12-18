@@ -1,30 +1,35 @@
-# React + TypeScript + Vite
+# AiBrush Local Editor
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Set up ComfyUI
 
-Currently, two official plugins are available:
+If you're running windows, you can grab a standalone ComfyUI zip from https://github.com/comfyanonymous/ComfyUI/releases
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Unzip that on your system and edit the `run_nvidia_gpu.bat` file as follows:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
+```bat
+.\python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build --enable-cors-header=http://localhost:5173
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+<!-- TODO: download checkpoints -->
+<!-- TODO: download lora -->
+<!-- TODO: custom nodes -->
+
+Now you can start up ComfyUI by running `run_nvidia_gpu.bat`.
+
+## Install dependencies
+
+Make sure you have NodeJS and yarn installed.
+
+Navigate to the root of this folder and run:
+
+```shell
+yarn
+```
+
+Then to start up the UI:
+
+```shell
+yarn dev
+```
+
+Navigate to http://localhost:5173/ and you can use the editor.
