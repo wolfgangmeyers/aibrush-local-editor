@@ -403,6 +403,19 @@ export class EnhanceTool extends BaseTool implements Tool {
         this.maskHandler(false);
     }
 
+    deleteSelected() {
+        this.imageData.splice(this.selectedImageDataIndex, 1);
+        if (this.selectedImageDataIndex >= this.imageData.length) {
+            this.selectedImageDataIndex = this.imageData.length - 1;
+        }
+        if (this.imageData.length === 0) {
+            this.state = "default";
+            this.renderer.setEditImage(null);
+        } else {
+            this.renderer.setEditImage(this.imageData[this.selectedImageDataIndex]);
+        }
+    }
+
     private updateProgress(progress: number) {
         if (this.progressListener) {
             this.progressListener(progress);
@@ -410,6 +423,9 @@ export class EnhanceTool extends BaseTool implements Tool {
     }
 
     async submit() {
+        if (this.state === "default") {
+            this.imageData = [];
+        }
         this.dirty = true;
         this.notifyError(null);
         const selectionOverlay = this.renderer.getSelectionOverlay();
@@ -432,7 +448,9 @@ export class EnhanceTool extends BaseTool implements Tool {
         }
 
         const workflow: Img2Img = new Img2Img(encodedMask ? img2imgmask : img2imgmask, Math.random(), this.variationStrength);
-        workflow.set_seed(Math.random());
+        // workflow.set_seed(Math.random());
+        // make a random int instead of a float
+        workflow.set_seed(Math.floor(Math.random() * 1000000000));
 
         this.state = "processing";
         let imageUrl: string;
@@ -450,17 +468,15 @@ export class EnhanceTool extends BaseTool implements Tool {
             return;
         }
 
-        this.imageData = [
-            await this.loadImageData(imageUrl, maskData, selectionOverlay!)
-        ];
+        this.imageData.push(await this.loadImageData(imageUrl, maskData, selectionOverlay!));
         if (this.imageData.length === 0) {
             this.state = "default";
             this.notifyError("No images returned");
             return;
         }
-        this.renderer.setEditImage(this.imageData[0]);
-        this.selectedImageDataIndex = 0;
-        this.selectedImageData = this.imageData[0];
+        this.selectedImageDataIndex = this.imageData.length - 1;
+        this.renderer.setEditImage(this.imageData[this.selectedImageDataIndex]);
+        this.selectedImageData = this.imageData[this.selectedImageDataIndex];
         this.state = "confirm";
         this.deleteMask();
     }
@@ -739,6 +755,30 @@ export const EnhanceControls: FC<ControlsProps> = ({
                             style={{ marginRight: "8px" }}
                         >
                             <i className="fa fa-eraser"></i>&nbsp; Erase
+                        </button>
+                    </>
+                )}
+                {state === "confirm" && (
+                    <>
+                        <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => tool.submit()}
+                            style={{ marginRight: "8px" }}
+                        >
+                            {/* retry button */}
+                            <i className="fa fa-redo"></i>&nbsp; Retry
+                        </button>
+                    </>
+                )}
+                {state === "confirm" && (
+                    <>
+                        <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => tool.deleteSelected()}
+                            style={{ marginRight: "8px" }}
+                        >
+                            {/* delete button */}
+                            <i className="fa fa-trash"></i>&nbsp; Delete
                         </button>
                     </>
                 )}
