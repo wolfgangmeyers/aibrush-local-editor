@@ -1,0 +1,65 @@
+.image-editor-canvas {
+    width: 95%;
+}
+
+.canvas-select-left {
+    position: absolute;
+    top: 50%;
+    left: 0%;
+  }
+  
+  .canvas-select-right {
+    position: absolute;
+    top: 50%;
+    right: 0%;
+  }
+  
+
+/* extra large screen */
+@media (min-width: 1500px) {
+    .image-editor-canvas {
+        width: 95%;
+        height: 95%;
+    }
+
+    .canvas-select-left {
+        left: 15%;
+      }
+      
+      .canvas-select-right {
+        right: 15%;
+      }
+      
+}
+
+/* phones */
+@media (max-width: 480px) {
+    .image-editor-canvas {
+        width: 100%;
+    }
+}
+
+.palette-button, .color-picker {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    margin-left: 8px;
+    margin-top: 8px;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+}
+
+.color-picker {
+    background-color: #898989;
+    color: white;
+    align-items: flex-start;
+}
+
+.palette-button.selected {
+    border: 5px solid #3D3BB5;
+}
+
+.palette-button.black {
+    border: 1px solid #898989;
+}
