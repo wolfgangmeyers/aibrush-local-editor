@@ -54,6 +54,7 @@ export class EnhanceTool extends BaseTool implements Tool {
     private progressListener?: (progress: number) => void;
     private errorListener?: (error: string | null) => void;
     private dirtyListener?: (dirty: boolean) => void;
+    private savedEncodedMask?: string;
 
     set dirty(dirty: boolean) {
         this._dirty = dirty;
@@ -403,6 +404,15 @@ export class EnhanceTool extends BaseTool implements Tool {
         this.maskHandler(false);
     }
 
+    async restoreMask() {
+        if (this.savedEncodedMask) {
+            this.renderer.createMask();
+            await this.renderer.setEncodedMask(this.savedEncodedMask, "webp");
+            this.state = "mask";
+            this.maskHandler(true);
+        }
+    }
+
     deleteSelected() {
         this.imageData.splice(this.selectedImageDataIndex, 1);
         if (this.selectedImageDataIndex >= this.imageData.length) {
@@ -425,6 +435,10 @@ export class EnhanceTool extends BaseTool implements Tool {
     async submit() {
         if (this.state === "default") {
             this.imageData = [];
+            this.savedEncodedMask = undefined;
+        }
+        if (this.savedEncodedMask) {
+            await this.restoreMask();
         }
         this.dirty = true;
         this.notifyError(null);
@@ -441,13 +455,13 @@ export class EnhanceTool extends BaseTool implements Tool {
         let maskData: ImageData | undefined;
         if (this.renderer.isMasked()) {
             encodedMask = this.renderer.getEncodedMask(
-                selectionOverlay!,
                 "mask"
             );
+            this.savedEncodedMask = encodedMask;
             maskData = this.renderer.getImageData(selectionOverlay!, "mask");
         }
 
-        const workflow: Img2Img = new Img2Img(encodedMask ? img2imgmask : img2imgmask, Math.random(), this.variationStrength);
+        const workflow: Img2Img = new Img2Img(img2imgmask, Math.random(), this.variationStrength);
         // workflow.set_seed(Math.random());
         // make a random int instead of a float
         workflow.set_seed(Math.floor(Math.random() * 1000000000));

@@ -549,6 +549,26 @@ export class Renderer {
         }
     }
 
+    private encodedImageToImageData(encodedImage: string, format: "png" | "webp" | "jpeg"): Promise<ImageData> {
+        // create a canvas and draw the image data on it
+        const canvas = document.createElement("canvas");
+        canvas.width = this.width;
+        canvas.height = this.height;
+        const context = canvas.getContext("2d");
+        if (context) {
+            const image = new Image();
+            image.src = `data:image/${format};base64,${encodedImage}`;
+            return new Promise(resolve => {
+                image.onload = () => {
+                    context.drawImage(image, 0, 0);
+                    // return the image data
+                    resolve(context.getImageData(0, 0, this.width, this.height));
+                }
+            });
+        }
+        throw new Error("Could not create canvas context");
+    }
+
     getEncodedImage(selection: Rect | null, format: "png" | "webp" | "jpeg"): string | undefined {
         const imageData = this.getImageData(selection);
         if (imageData) {
@@ -556,7 +576,7 @@ export class Renderer {
         }
     }
 
-    private convertErasureToMask(erasure: ImageData): ImageData {
+    private convertMaskToErasure(erasure: ImageData): ImageData {
         // for each pixel, if alpha < 255, set to white, otherwise set to black
         const mask = erasure;
         for (let i = 0; i < erasure.data.length; i += 4) {
@@ -577,19 +597,47 @@ export class Renderer {
         return mask;
     }
 
+    private convertErasureToMask(mask: ImageData): ImageData {
+        // for each pixel, if alpha < 255, set to white, otherwise set to black
+        const erasure = mask;
+        for (let i = 0; i < mask.data.length; i += 4) {
+            let white = mask.data[i + 3] < 255;
+            if (white) {
+                erasure.data[i] = 255;
+                erasure.data[i + 1] = 255;
+                erasure.data[i + 2] = 255;
+                erasure.data[i + 3] = 255;
+            } else {
+                erasure.data[i] = 0;
+                erasure.data[i + 1] = 0;
+                erasure.data[i + 2] = 0;
+                erasure.data[i + 3] = 255;
+            }
+        }
+        return erasure;
+    }
+
     getEncodedMask(
-        selection: Rect | null,
         layer: "base" | "mask" = "base"
     ): string | undefined {
-        const imageData = this.getImageData(selection, layer)!;
+        const imageData = this.getImageData(this.selectionOverlay || null, layer)!;
         if (!imageData) {
             return;
         }
         if (layer === "mask") {
-            const mask = this.convertErasureToMask(imageData);
+            const mask = this.convertMaskToErasure(imageData);
             return this.imageDataToEncodedImage(mask, "webp");
         } else {
             return this.imageDataToEncodedImage(imageData, "webp");
+        }
+    }
+
+    async setEncodedMask(encodedMask: string, format: "png" | "webp" | "jpeg") {
+        const mask = await this.encodedImageToImageData(encodedMask, format);
+        const erasure = this.convertErasureToMask(mask);
+        const context = this.maskLayer!.getContext("2d");
+        if (context) {
+            context.putImageData(erasure, this.selectionOverlay!.x, this.selectionOverlay!.y);
         }
     }
 
