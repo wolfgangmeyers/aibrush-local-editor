@@ -463,8 +463,6 @@ export class EnhanceTool extends BaseTool implements Tool {
         }
 
         const workflow: Img2Img = new Img2Img(img2imgmask, Math.random(), this.variationStrength);
-        // workflow.set_seed(Math.random());
-        // make a random int instead of a float
         workflow.set_seed(Math.floor(Math.random() * 1000000000));
 
         this.state = "processing";

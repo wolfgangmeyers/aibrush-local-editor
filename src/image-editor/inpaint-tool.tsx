@@ -35,8 +35,8 @@ export class InpaintTool extends BaseTool implements Tool {
     private idCounter = 0;
 
     private _state: InpaintToolState;
-    private stateHandler: (state: InpaintToolState) => void = () => {};
-    private selectionControlsListener: (show: boolean) => void = () => {};
+    private stateHandler: (state: InpaintToolState) => void = () => { };
+    private selectionControlsListener: (show: boolean) => void = () => { };
 
     private imageData: Array<ImageData> = [];
     private selectedImageDataIndex: number = -1;
@@ -46,6 +46,7 @@ export class InpaintTool extends BaseTool implements Tool {
     private progressListener?: (progress: number) => void;
     private errorListener?: (error: string | null) => void;
     private dirtyListener?: (dirty: boolean) => void;
+    private savedEncodedMask?: string;
 
     set dirty(dirty: boolean) {
         this._dirty = dirty;
@@ -324,6 +325,19 @@ export class InpaintTool extends BaseTool implements Tool {
         this.dirty = false;
     }
 
+    deleteSelected() {
+        this.imageData.splice(this.selectedImageDataIndex, 1);
+        if (this.selectedImageDataIndex >= this.imageData.length) {
+            this.selectedImageDataIndex = this.imageData.length - 1;
+        }
+        if (this.imageData.length === 0) {
+            this.state = "inpaint";
+            this.renderer.setEditImage(null);
+        } else {
+            this.renderer.setEditImage(this.imageData[this.selectedImageDataIndex]);
+        }
+    }
+
     private updateProgress(progress: number) {
         if (this.progressListener) {
             this.progressListener(progress);
@@ -348,9 +362,9 @@ export class InpaintTool extends BaseTool implements Tool {
                 selectionOverlay.x < 0 ||
                 selectionOverlay.y < 0 ||
                 selectionOverlay.x + selectionOverlay.width >
-                    this.renderer.getWidth() ||
+                this.renderer.getWidth() ||
                 selectionOverlay.y + selectionOverlay.height >
-                    this.renderer.getHeight()
+                this.renderer.getHeight()
             ) {
                 this.renderer.expandToOverlay();
                 selectionOverlay = this.renderer.getSelectionOverlay()!;
@@ -494,10 +508,6 @@ export const InpaintControls: FC<ControlsProps> = ({
     const [outpaint, setoutpaint] = useState<boolean | undefined>(
         tool.getArgs().outpaint
     );
-    const [model, setModel] = useState("Deliberate Inpainting");
-    const [selectingModel, setSelectingModel] = useState(false);
-
-    const [selectingLora, setSelectingLora] = useState<boolean>(false);
 
     useEffect(() => {
         tool.updateArgs({
@@ -509,20 +519,6 @@ export const InpaintControls: FC<ControlsProps> = ({
     tool.onProgress(setProgress);
     tool.onError(setError);
     tool.onDirty(setDirty);
-
-    const onAddTrigger = (trigger: string) => {
-        const parts = [prompt];
-        if (prompt.length > 0 && !prompt.endsWith(",")) {
-            parts.push(", ");
-        }
-        parts.push(trigger);
-        setPrompt(parts.join(""));
-    };
-
-    const onSelectModel = (model: string) => {
-        setModel(model);
-        setSelectingModel(false);
-    };
 
     if (state === "uploading" || state === "processing") {
         return (
@@ -663,42 +659,6 @@ export const InpaintControls: FC<ControlsProps> = ({
                             Customize the negative text prompt here
                         </small>
                     </div>
-                    <div className="form-group">
-                        <label htmlFor="count">Count: {count}</label>
-                        <input
-                            type="range"
-                            className="form-control-range"
-                            id="count"
-                            min="1"
-                            max="10"
-                            step="1"
-                            value={count}
-                            onChange={(e) => {
-                                setCount(parseInt(e.target.value));
-                            }}
-                        />
-                        <small className="form-text text-muted">
-                            Number of inpaint options
-                        </small>
-                    </div>
-                    {/* select model dropdown */}
-                    {/* options: stable_diffusion_inpainting, "Epic Diffusion", "Deliberate" */}
-                    <div className="form-group">
-                        <label htmlFor="model">Model</label>
-                        <div>
-                            <button
-                                type="button"
-                                className="btn btn-secondary light-button"
-                                onClick={() => setSelectingModel(true)}
-                            >
-                                {model}&nbsp;
-                                <i className="fas fa-caret-down"></i>
-                            </button>
-                        </div>
-                        <small className="form-text text-muted">
-                            Select the inpaint model
-                        </small>
-                    </div>
                 </>
             )}
 
@@ -717,16 +677,41 @@ export const InpaintControls: FC<ControlsProps> = ({
                     state === "confirm" ||
                     (state == "erase" && tool.selectSupported()) ||
                     state == "inpaint") && (
-                    <button
-                        style={{ marginRight: "8px" }}
-                        className="btn btn-primary btn-sm"
-                        onClick={() => {
-                            tool.cancel();
-                        }}
-                    >
-                        {/* cancel icon */}
-                        <i className="fa fa-times"></i>&nbsp; Revert
-                    </button>
+                        <button
+                            style={{ marginRight: "8px" }}
+                            className="btn btn-primary btn-sm"
+                            onClick={() => {
+                                tool.cancel();
+                            }}
+                        >
+                            {/* cancel icon */}
+                            <i className="fa fa-times"></i>&nbsp; Revert
+                        </button>
+                    )}
+
+                {/* TODO: save/restore mask (or alternative) on retry */}
+                {/* {state === "confirm" && (
+                    <>
+                        <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => tool.submit()}
+                            style={{ marginRight: "8px" }}
+                        >
+                            <i className="fa fa-redo"></i>&nbsp; Retry
+                        </button>
+                    </>
+                )} */}
+                {state === "confirm" && (
+                    <>
+                        <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => tool.deleteSelected()}
+                            style={{ marginRight: "8px" }}
+                        >
+                            {/* delete button */}
+                            <i className="fa fa-trash"></i>&nbsp; Delete
+                        </button>
+                    </>
                 )}
 
                 {state === "confirm" && (
