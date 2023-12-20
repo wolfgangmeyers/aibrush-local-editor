@@ -14,8 +14,9 @@ import { MaskEditor } from "./mask-editor-controls";
 import { Rect } from "./models";
 import { Img2Img } from "../lib/workflows";
 
-import img2img from "../workflows/dreamshaper_img2img64_api.json";
+// import img2img from "../workflows/dreamshaper_img2img64_api.json";
 import img2imgmask from "../workflows/dreamshaper_img2img64_mask_api.json";
+
 
 type EnhanceToolState =
     | "select"
@@ -664,24 +665,6 @@ export const EnhanceControls: FC<ControlsProps> = ({
                             Customize the negative text prompt here
                         </small>
                     </div>
-                    {/* <div className="form-group">
-                        <label htmlFor="count">Count: {count}</label>
-                        <input
-                            type="range"
-                            className="form-control-range"
-                            id="count"
-                            min="1"
-                            max="10"
-                            step="1"
-                            value={count}
-                            onChange={(e) => {
-                                setCount(parseInt(e.target.value));
-                            }}
-                        />
-                        <small className="form-text text-muted">
-                            Number of enhancement options
-                        </small>
-                    </div> */}
                     <div className="form-group">
                         <label htmlFor="variation-strength">
                             Variation Strength:{" "}

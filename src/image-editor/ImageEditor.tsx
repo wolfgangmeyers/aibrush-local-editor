@@ -16,6 +16,7 @@ import { ImportExportControls } from "./import-export";
 import { BusyModal } from "../components/BusyModal";
 import moment from "moment";
 import { createEncodedThumbnail } from "../lib/imageutil";
+import { InpaintControls, InpaintTool } from "./inpaint-tool";
 
 interface CanPreventDefault {
     preventDefault: () => void;
@@ -57,6 +58,22 @@ export const ImageEditor = () => {
                         tool={t as EnhanceTool}
                         renderer={renderer}
                         key={"enhance-controls"}
+                    />
+                );
+            },
+        },
+        {
+            name: "inpaint",
+            iconClass: "fas fa-paint-brush",
+            constructor: (r: Renderer) => new InpaintTool(r),
+            defaultArgs: {},
+            renderControls: (t: Tool, renderer: Renderer) => {
+                t.onShowSelectionControls(setShowSelectionControls);
+                return (
+                    <InpaintControls
+                        tool={t as InpaintTool}
+                        renderer={renderer}
+                        key={"inpaint-controls"}
                     />
                 );
             },
