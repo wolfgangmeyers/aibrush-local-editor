@@ -10,9 +10,16 @@ Unzip that on your system and edit the `run_nvidia_gpu.bat` file as follows:
 .\python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build --enable-cors-header=http://localhost:5173
 ```
 
-<!-- TODO: download checkpoints -->
-<!-- TODO: download lora -->
-<!-- TODO: custom nodes -->
+## Models to Download
+
+The workflows included with this tool use [DreamshaperXL](https://civitai.com/models/112902/dreamshaper-xl). Download it into the `ComfyUI/models/checkpoints` folder.
+Download the [SDXL Inpainting](https://civitai.com/models/146028/sdxl-inpainting-01-official-reupload) model and place in the `ComfyUI/models/unet` folder.
+Download the [LCM&TurboMix LoRA](https://civitai.com/models/216190) model and place in the `ComfyUI/models/loras` folder.
+
+
+## Custom Nodes
+
+Navigate to the `ComfyUI/custom_nodes` folder and git clone the https://github.com/Acly/comfyui-tooling-nodes repo.
 
 Now you can start up ComfyUI by running `run_nvidia_gpu.bat`.
 
@@ -20,7 +27,7 @@ Now you can start up ComfyUI by running `run_nvidia_gpu.bat`.
 
 Make sure you have NodeJS and yarn installed.
 
-Navigate to the root of this folder and run:
+Navigate to the root of this folder and install library dependencies:
 
 ```shell
 yarn
