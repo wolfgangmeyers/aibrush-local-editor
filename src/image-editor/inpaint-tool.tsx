@@ -1,17 +1,16 @@
-import React, { FC, useState, useEffect } from "react";
+import React, { FC, useEffect, useState } from "react";
 
-import { Tool, BaseTool } from "./tool";
-import { Renderer } from "./renderer";
-import { SelectionTool } from "./selection-tool";
-import { Rect } from "./models";
-import { getClosestAspectRatio } from "../lib/aspecRatios";
+import { ProgressBar } from "../components/ProgressBar";
 import {
     ImageUtilWorker,
+    applyAlphaMask,
     loadImageDataElement,
 } from "../lib/imageutil";
-import moment from "moment";
-import { ProgressBar } from "../components/ProgressBar";
 import { Img2Img } from "../lib/workflows";
+import { Rect } from "./models";
+import { Renderer } from "./renderer";
+import { SelectionTool } from "./selection-tool";
+import { BaseTool, Tool } from "./tool";
 
 type InpaintToolState =
     | "select"
@@ -46,7 +45,8 @@ export class InpaintTool extends BaseTool implements Tool {
     private progressListener?: (progress: number) => void;
     private errorListener?: (error: string | null) => void;
     private dirtyListener?: (dirty: boolean) => void;
-    private savedEncodedMask?: string;
+    private savedEncodedMask?: string; // preserve the mask when retrying
+    private savedMaskData?: ImageData;
 
     set dirty(dirty: boolean) {
         this._dirty = dirty;
@@ -289,26 +289,9 @@ export class InpaintTool extends BaseTool implements Tool {
             selectionOverlay.height
         );
 
-        const id = this.newId();
-        const resp = await this.worker.processRequest({
-            id,
-            alphaMode: "alpha",
-            alphaPixels: alphaMask.data,
-            feather: true,
-            height: this.renderer.getHeight(),
-            width: this.renderer.getWidth(),
-            pixels: imageData.data,
-            selectionOverlay,
-            featherWidth: 10,
-        });
-        const updatedImageData = new ImageData(
-            resp.pixels,
-            imageData.width,
-            imageData.height
-        );
-        // remove canvas
+        applyAlphaMask(imageData, alphaMask, true);
         canvas.remove();
-        return updatedImageData;
+        return imageData;
     }
 
     cancel() {
@@ -354,6 +337,8 @@ export class InpaintTool extends BaseTool implements Tool {
 
         if (this.state === "inpaint") {
             this.imageData = [];
+            this.savedEncodedMask = undefined;
+            this.savedMaskData = undefined;
         }
 
         if (this.getArgs().outpaint) {
@@ -375,16 +360,22 @@ export class InpaintTool extends BaseTool implements Tool {
         this.updateProgress(0);
 
         // get the erased area, then undo the erase to get the original image
-        const encodedMask = this.renderer.getEncodedMask("base");
-        const maskData = this.renderer.getImageData(selectionOverlay);
+        const encodedMask = this.savedEncodedMask || this.renderer.getEncodedMask("base");
+        const maskData = this.savedMaskData || this.renderer.getImageData(selectionOverlay);
         if (!maskData || !encodedMask) {
             console.error("Failed to get mask data");
             return;
         }
-        // hack to restore the image
-        this.renderer.snapshot();
-        this.renderer.undo();
-        this.renderer.clearRedoStack();
+        
+        if (!this.savedEncodedMask) {
+            // hack to restore the image
+            this.renderer.snapshot();
+            this.renderer.undo();
+            this.renderer.clearRedoStack();
+        }
+
+        this.savedEncodedMask = encodedMask;
+        this.savedMaskData = maskData;
 
         const encodedImage = this.renderer.getEncodedImage(
             selectionOverlay,
@@ -689,8 +680,7 @@ export const InpaintControls: FC<ControlsProps> = ({
                         </button>
                     )}
 
-                {/* TODO: save/restore mask (or alternative) on retry */}
-                {/* {state === "confirm" && (
+                {state === "confirm" && (
                     <>
                         <button
                             className="btn btn-primary btn-sm"
@@ -700,7 +690,7 @@ export const InpaintControls: FC<ControlsProps> = ({
                             <i className="fa fa-redo"></i>&nbsp; Retry
                         </button>
                     </>
-                )} */}
+                )}
                 {state === "confirm" && (
                     <>
                         <button

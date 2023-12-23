@@ -1,231 +1,7 @@
 {
-  "last_node_id": 29,
-  "last_link_id": 50,
+  "last_node_id": 32,
+  "last_link_id": 68,
   "nodes": [
-    {
-      "id": 8,
-      "type": "VAEDecode",
-      "pos": [
-        1713,
-        444
-      ],
-      "size": {
-        "0": 210,
-        "1": 46
-      },
-      "flags": {},
-      "order": 15,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "samples",
-          "type": "LATENT",
-          "link": 35
-        },
-        {
-          "name": "vae",
-          "type": "VAE",
-          "link": 8
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            9
-          ],
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "VAEDecode"
-      }
-    },
-    {
-      "id": 13,
-      "type": "ModelSamplingDiscrete",
-      "pos": [
-        1120,
-        102
-      ],
-      "size": {
-        "0": 315,
-        "1": 82
-      },
-      "flags": {},
-      "order": 12,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 13
-        }
-      ],
-      "outputs": [
-        {
-          "name": "MODEL",
-          "type": "MODEL",
-          "links": [
-            14
-          ],
-          "shape": 3,
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "ModelSamplingDiscrete"
-      },
-      "widgets_values": [
-        "lcm",
-        false
-      ]
-    },
-    {
-      "id": 7,
-      "type": "CLIPTextEncode",
-      "pos": [
-        498,
-        635
-      ],
-      "size": {
-        "0": 425.27801513671875,
-        "1": 180.6060791015625
-      },
-      "flags": {},
-      "order": 8,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 18
-        }
-      ],
-      "outputs": [
-        {
-          "name": "CONDITIONING",
-          "type": "CONDITIONING",
-          "links": [
-            6
-          ],
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "CLIPTextEncode"
-      },
-      "widgets_values": [
-        "low quality, distorted, deformed, dull, boring, plain, ugly, noise"
-      ]
-    },
-    {
-      "id": 9,
-      "type": "SaveImage",
-      "pos": [
-        2028,
-        144
-      ],
-      "size": {
-        "0": 872.0001220703125,
-        "1": 881.0001220703125
-      },
-      "flags": {},
-      "order": 16,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 9
-        }
-      ],
-      "properties": {},
-      "widgets_values": [
-        "ComfyUI"
-      ]
-    },
-    {
-      "id": 15,
-      "type": "VAEEncode",
-      "pos": [
-        546,
-        909
-      ],
-      "size": {
-        "0": 210,
-        "1": 46
-      },
-      "flags": {},
-      "order": 10,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "pixels",
-          "type": "IMAGE",
-          "link": 47
-        },
-        {
-          "name": "vae",
-          "type": "VAE",
-          "link": 20
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [
-            28
-          ],
-          "shape": 3,
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "VAEEncode"
-      }
-    },
-    {
-      "id": 21,
-      "type": "SetLatentNoiseMask",
-      "pos": [
-        795,
-        1001
-      ],
-      "size": {
-        "0": 210,
-        "1": 46
-      },
-      "flags": {},
-      "order": 13,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "samples",
-          "type": "LATENT",
-          "link": 28
-        },
-        {
-          "name": "mask",
-          "type": "MASK",
-          "link": 50
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [],
-          "shape": 3,
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "SetLatentNoiseMask"
-      }
-    },
     {
       "id": 25,
       "type": "VAEEncodeForInpaint",
@@ -244,7 +20,7 @@
         {
           "name": "pixels",
           "type": "IMAGE",
-          "link": 48
+          "link": 65
         },
         {
           "name": "vae",
@@ -254,7 +30,7 @@
         {
           "name": "mask",
           "type": "MASK",
-          "link": 49
+          "link": 67
         }
       ],
       "outputs": [
@@ -307,55 +83,6 @@
       ]
     },
     {
-      "id": 4,
-      "type": "CheckpointLoaderSimple",
-      "pos": [
-        -84,
-        496
-      ],
-      "size": {
-        "0": 315,
-        "1": 98
-      },
-      "flags": {},
-      "order": 1,
-      "mode": 0,
-      "outputs": [
-        {
-          "name": "MODEL",
-          "type": "MODEL",
-          "links": [],
-          "slot_index": 0
-        },
-        {
-          "name": "CLIP",
-          "type": "CLIP",
-          "links": [
-            11,
-            17,
-            18
-          ],
-          "slot_index": 1
-        },
-        {
-          "name": "VAE",
-          "type": "VAE",
-          "links": [
-            8,
-            20,
-            38
-          ],
-          "slot_index": 2
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "CheckpointLoaderSimple"
-      },
-      "widgets_values": [
-        "dreamshaperXL_turboDpmppSDE.safetensors"
-      ]
-    },
-    {
       "id": 27,
       "type": "UNETLoader",
       "pos": [
@@ -367,7 +94,7 @@
         "1": 58
       },
       "flags": {},
-      "order": 2,
+      "order": 1,
       "mode": 0,
       "outputs": [
         {
@@ -388,18 +115,155 @@
       ]
     },
     {
+      "id": 28,
+      "type": "LoadImage",
+      "pos": [
+        -70,
+        1157
+      ],
+      "size": {
+        "0": 315,
+        "1": 314.00006103515625
+      },
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "DALL·E 2023-12-20 19.47.20 - An impressionist illustration with a fisheye warped view from a wizard's tower, looking down on a village and countryside. The image should capture th.png",
+        "image"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "KSampler",
+      "pos": [
+        1127,
+        622
+      ],
+      "size": {
+        "0": 315,
+        "1": 262
+      },
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 14
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 4
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 6
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 41
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            56
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        149749586358132,
+        "randomize",
+        6,
+        3,
+        "lcm",
+        "sgm_uniform",
+        1
+      ]
+    },
+    {
+      "id": 21,
+      "type": "SetLatentNoiseMask",
+      "pos": [
+        1183,
+        1100
+      ],
+      "size": {
+        "0": 210,
+        "1": 46
+      },
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 56
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 68
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            57
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SetLatentNoiseMask"
+      }
+    },
+    {
       "id": 10,
       "type": "LoraLoader",
       "pos": [
-        424,
-        107
+        565,
+        9
       ],
       "size": {
         "0": 315,
         "1": 126
       },
       "flags": {},
-      "order": 9,
+      "order": 7,
       "mode": 0,
       "inputs": [
         {
@@ -441,92 +305,97 @@
       ]
     },
     {
-      "id": 29,
-      "type": "LoadImage",
+      "id": 13,
+      "type": "ModelSamplingDiscrete",
       "pos": [
-        -82,
-        1544
+        1148,
+        22
       ],
-      "size": [
-        315,
-        313.9999809265137
-      ],
+      "size": {
+        "0": 315,
+        "1": 82
+      },
       "flags": {},
-      "order": 3,
+      "order": 12,
       "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 13
+        }
+      ],
       "outputs": [
         {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": null,
-          "shape": 3
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": [],
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            14
+          ],
           "shape": 3,
-          "slot_index": 1
+          "slot_index": 0
         }
       ],
       "properties": {
-        "Node name for S&R": "LoadImage"
+        "Node name for S&R": "ModelSamplingDiscrete"
       },
       "widgets_values": [
-        "fireball-mask.png.png",
-        "image"
+        "lcm",
+        false
       ]
     },
     {
-      "id": 28,
-      "type": "LoadImage",
+      "id": 7,
+      "type": "CLIPTextEncode",
       "pos": [
-        -70,
-        1157
+        520,
+        691
       ],
-      "size": [
-        315,
-        314.00006103515625
-      ],
+      "size": {
+        "0": 425.27801513671875,
+        "1": 180.6060791015625
+      },
       "flags": {},
-      "order": 4,
+      "order": 9,
       "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 18
+        }
+      ],
       "outputs": [
         {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [],
-          "shape": 3,
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            6,
+            59
+          ],
           "slot_index": 0
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null,
-          "shape": 3
         }
       ],
       "properties": {
-        "Node name for S&R": "LoadImage"
+        "Node name for S&R": "CLIPTextEncode"
       },
       "widgets_values": [
-        "DALL·E 2023-12-17 14.42.58 - A cartoon illustration of a fireball playing an electric guitar on stage, singing heavy metal. The fireball character is depicted as lively and energe.png",
-        "image"
+        "blurry, low quality, distorted, deformed, dull, boring, plain, ugly, noise"
       ]
     },
     {
       "id": 6,
       "type": "CLIPTextEncode",
       "pos": [
-        551,
-        350
+        511,
+        454
       ],
       "size": {
         "0": 422.84503173828125,
         "1": 164.31304931640625
       },
       "flags": {},
-      "order": 7,
+      "order": 8,
       "mode": 0,
       "inputs": [
         {
@@ -540,7 +409,8 @@
           "name": "CONDITIONING",
           "type": "CONDITIONING",
           "links": [
-            4
+            4,
+            58
           ],
           "slot_index": 0
         }
@@ -549,43 +419,253 @@
         "Node name for S&R": "CLIPTextEncode"
       },
       "widgets_values": [
-        "a cute cartoon fireball wearing sunglasses"
+        "a painting of a village and rolling landscape, highly detailed"
       ]
     },
     {
-      "id": 3,
+      "id": 4,
+      "type": "CheckpointLoaderSimple",
+      "pos": [
+        -84,
+        496
+      ],
+      "size": {
+        "0": 315,
+        "1": 98
+      },
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            60
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            11,
+            17,
+            18,
+            61
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            8,
+            38
+          ],
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CheckpointLoaderSimple"
+      },
+      "widgets_values": [
+        "dreamshaperXL_turboDpmppSDE.safetensors"
+      ]
+    },
+    {
+      "id": 31,
+      "type": "LoraLoader",
+      "pos": [
+        564,
+        223
+      ],
+      "size": {
+        "0": 315,
+        "1": 126
+      },
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 60
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 61
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            62
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoraLoader"
+      },
+      "widgets_values": [
+        "LCMTurboMix_Euler_A_fix.safetensors",
+        1,
+        1
+      ]
+    },
+    {
+      "id": 32,
+      "type": "ModelSamplingDiscrete",
+      "pos": [
+        1001,
+        235
+      ],
+      "size": {
+        "0": 315,
+        "1": 82
+      },
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 62
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            63
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ModelSamplingDiscrete"
+      },
+      "widgets_values": [
+        "lcm",
+        false
+      ]
+    },
+    {
+      "id": 8,
+      "type": "VAEDecode",
+      "pos": [
+        1911,
+        468
+      ],
+      "size": {
+        "0": 210,
+        "1": 46
+      },
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 64
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            9
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      }
+    },
+    {
+      "id": 9,
+      "type": "SaveImage",
+      "pos": [
+        2224,
+        177
+      ],
+      "size": {
+        "0": 872.0001220703125,
+        "1": 881.0001220703125
+      },
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 9
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    },
+    {
+      "id": 30,
       "type": "KSampler",
       "pos": [
-        1115,
-        561
+        1548,
+        707
       ],
       "size": {
         "0": 315,
         "1": 262
       },
       "flags": {},
-      "order": 14,
+      "order": 16,
       "mode": 0,
       "inputs": [
         {
           "name": "model",
           "type": "MODEL",
-          "link": 14
+          "link": 63
         },
         {
           "name": "positive",
           "type": "CONDITIONING",
-          "link": 4
+          "link": 58
         },
         {
           "name": "negative",
           "type": "CONDITIONING",
-          "link": 6
+          "link": 59
         },
         {
           "name": "latent_image",
           "type": "LATENT",
-          "link": 41
+          "link": 57
         }
       ],
       "outputs": [
@@ -593,7 +673,7 @@
           "name": "LATENT",
           "type": "LATENT",
           "links": [
-            35
+            64
           ],
           "slot_index": 0
         }
@@ -602,13 +682,13 @@
         "Node name for S&R": "KSampler"
       },
       "widgets_values": [
-        679150661312186,
+        667688655591525,
         "randomize",
-        6,
-        5,
+        4,
+        2,
         "lcm",
         "sgm_uniform",
-        1
+        0.35000000000000003
       ]
     },
     {
@@ -623,15 +703,14 @@
         "1": 78
       },
       "flags": {},
-      "order": 5,
+      "order": 4,
       "mode": 0,
       "outputs": [
         {
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            47,
-            48
+            65
           ],
           "shape": 3,
           "slot_index": 0
@@ -648,6 +727,43 @@
         "Node name for S&R": "ETN_LoadImageBase64"
       },
       "widgets_values": [
+        "image"
+      ]
+    },
+    {
+      "id": 29,
+      "type": "LoadImage",
+      "pos": [
+        -82,
+        1544
+      ],
+      "size": [
+        315,
+        314
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": null,
+          "shape": 3
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "village-mask.png",
         "image"
       ]
     },
@@ -676,8 +792,8 @@
           "name": "MASK",
           "type": "MASK",
           "links": [
-            49,
-            50
+            67,
+            68
           ],
           "shape": 3,
           "slot_index": 1
@@ -765,30 +881,6 @@
       "CLIP"
     ],
     [
-      20,
-      4,
-      2,
-      15,
-      1,
-      "VAE"
-    ],
-    [
-      28,
-      15,
-      0,
-      21,
-      0,
-      "LATENT"
-    ],
-    [
-      35,
-      3,
-      0,
-      8,
-      0,
-      "LATENT"
-    ],
-    [
       38,
       4,
       2,
@@ -813,15 +905,79 @@
       "MODEL"
     ],
     [
-      47,
-      16,
+      56,
+      3,
       0,
-      15,
+      21,
       0,
-      "IMAGE"
+      "LATENT"
     ],
     [
-      48,
+      57,
+      21,
+      0,
+      30,
+      3,
+      "LATENT"
+    ],
+    [
+      58,
+      6,
+      0,
+      30,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      59,
+      7,
+      0,
+      30,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      60,
+      4,
+      0,
+      31,
+      0,
+      "MODEL"
+    ],
+    [
+      61,
+      4,
+      1,
+      31,
+      1,
+      "CLIP"
+    ],
+    [
+      62,
+      31,
+      0,
+      32,
+      0,
+      "MODEL"
+    ],
+    [
+      63,
+      32,
+      0,
+      30,
+      0,
+      "MODEL"
+    ],
+    [
+      64,
+      30,
+      0,
+      8,
+      0,
+      "LATENT"
+    ],
+    [
+      65,
       16,
       0,
       25,
@@ -829,7 +985,7 @@
       "IMAGE"
     ],
     [
-      49,
+      67,
       19,
       1,
       25,
@@ -837,7 +993,7 @@
       "MASK"
     ],
     [
-      50,
+      68,
       19,
       1,
       21,

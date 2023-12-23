@@ -288,43 +288,88 @@ export function featherEdges(
     }
 }
 
-export function applyAlphaMask(imageData: ImageData, alphaMask: ImageData) {
-    if (
-        imageData.width != alphaMask.width ||
-        imageData.height != alphaMask.height
-    ) {
-        throw new Error("imageData and alphaMask are not the same size");
+// export function applyAlphaMask(imageData: ImageData, alphaMask: ImageData) {
+//     if (
+//         imageData.width != alphaMask.width ||
+//         imageData.height != alphaMask.height
+//     ) {
+//         throw new Error("imageData and alphaMask are not the same size");
+//     }
+//     const spread = 10;
+//     for (let x = 0; x < imageData.width; x++) {
+//         for (let y = 0; y < imageData.height; y++) {
+//             // r, g, b, a
+//             // if transparency within 10 pixels, set alpha to 1, otherwise to zero.
+//             // binary alpha inversion with spread
+//             let alpha = false;
+//             for (
+//                 let x2 = Math.max(0, x - spread);
+//                 x2 < Math.min(imageData.width, x + spread);
+//                 x2++
+//             ) {
+//                 for (
+//                     let y2 = Math.max(0, y - spread);
+//                     y2 < Math.min(imageData.height, y + spread);
+//                     y2++
+//                 ) {
+//                     const alphaValue =
+//                         alphaMask.data[y2 * alphaMask.width * 4 + x2 * 4 + 3];
+//                     if (alphaValue < 255) {
+//                         alpha = true;
+//                     }
+//                 }
+//             }
+//             const alphaIndex = y * imageData.width * 4 + x * 4 + 3;
+//             if (alpha) {
+//                 imageData.data[alphaIndex] = 255;
+//             } else {
+//                 imageData.data[alphaIndex] = 0;
+//             }
+//         }
+//     }
+// }
+export function applyAlphaMask(imageData: ImageData, alphaMask: ImageData, invert: boolean) {
+    const blurRadius = 10;
+    const edgeWidth = blurRadius * 2;
+    const alphaCanvas = document.createElement("canvas");
+    alphaCanvas.width = imageData.width + edgeWidth * 2;
+    alphaCanvas.height = imageData.height + edgeWidth * 2;
+    const alphaCtx = alphaCanvas.getContext("2d");
+    if (!alphaCtx) {
+        throw new Error("Could not create canvas context");
     }
-    const spread = 10;
-    for (let x = 0; x < imageData.width; x++) {
-        for (let y = 0; y < imageData.height; y++) {
-            // r, g, b, a
-            // if transparency within 10 pixels, set alpha to 1, otherwise to zero.
-            // binary alpha inversion with spread
-            let alpha = false;
-            for (
-                let x2 = Math.max(0, x - spread);
-                x2 < Math.min(imageData.width, x + spread);
-                x2++
-            ) {
-                for (
-                    let y2 = Math.max(0, y - spread);
-                    y2 < Math.min(imageData.height, y + spread);
-                    y2++
-                ) {
-                    const alphaValue =
-                        alphaMask.data[y2 * alphaMask.width * 4 + x2 * 4 + 3];
-                    if (alphaValue < 255) {
-                        alpha = true;
-                    }
-                }
-            }
-            const alphaIndex = y * imageData.width * 4 + x * 4 + 3;
-            if (alpha) {
-                imageData.data[alphaIndex] = 255;
-            } else {
-                imageData.data[alphaIndex] = 0;
-            }
+
+    // draw an opaque rect to ensure the edges are blurred correctly
+    alphaCtx.fillStyle = 'white';
+    alphaCtx.fillRect(0, 0, edgeWidth, alphaCanvas.height);
+    alphaCtx.fillRect(0, 0, alphaCanvas.width, edgeWidth);
+    alphaCtx.fillRect(alphaCanvas.width - edgeWidth, 0, edgeWidth, alphaCanvas.height);
+    alphaCtx.fillRect(0, alphaCanvas.height - edgeWidth, alphaCanvas.width, edgeWidth);
+    alphaCtx.putImageData(alphaMask, edgeWidth, edgeWidth);
+
+    const imageCanvas = document.createElement("canvas");
+    imageCanvas.width = imageData.width;
+    imageCanvas.height = imageData.height;
+    const imageCtx = imageCanvas.getContext("2d");
+    if (!imageCtx) {
+        throw new Error("Could not create canvas context");
+    }
+    imageCtx.putImageData(imageData, 0, 0);
+
+    // apply alpha mask
+    imageCtx.filter = `blur(${blurRadius}px)`;
+    imageCtx.globalCompositeOperation = "destination-in";
+    imageCtx.drawImage(alphaCanvas, -edgeWidth, -edgeWidth);
+
+    const alphaData = imageCtx.getImageData(0, 0, alphaMask.width, alphaMask.height);
+    for (let i = 0; i < alphaData.data.length; i += 4) {
+        const alpha = alphaData.data[i + 3];
+        if (alpha > 0) {
+            alphaData.data[i + 3] = Math.max(255 - (255 - alpha) * 2, 0);
+        }
+        // invert
+        if (invert) {
+            alphaData.data[i + 3] = 255 - alphaData.data[i + 3];
         }
     }
 }

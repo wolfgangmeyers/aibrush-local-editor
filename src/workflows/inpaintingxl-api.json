@@ -1,9 +1,9 @@
 {
   "3": {
     "inputs": {
-      "seed": 679150661312186,
-      "steps": 6,
-      "cfg": 5,
+      "seed": 149749586358132,
+      "steps": 4,
+      "cfg": 3,
       "sampler_name": "lcm",
       "scheduler": "sgm_uniform",
       "denoise": 1,
@@ -42,7 +42,7 @@
   },
   "6": {
     "inputs": {
-      "text": "a cute cartoon fireball wearing sunglasses",
+      "text": "a painting of a village and rolling landscape, highly detailed",
       "clip": [
         "4",
         1
@@ -52,7 +52,7 @@
   },
   "7": {
     "inputs": {
-      "text": "low quality, distorted, deformed, dull, boring, plain, ugly, noise",
+      "text": "blurry, low quality, distorted, deformed, dull, boring, plain, ugly, noise",
       "clip": [
         "4",
         1
@@ -63,7 +63,7 @@
   "8": {
     "inputs": {
       "samples": [
-        "3",
+        "30",
         0
       ],
       "vae": [
@@ -110,19 +110,6 @@
     },
     "class_type": "ModelSamplingDiscrete"
   },
-  "15": {
-    "inputs": {
-      "pixels": [
-        "16",
-        0
-      ],
-      "vae": [
-        "4",
-        2
-      ]
-    },
-    "class_type": "VAEEncode"
-  },
   "16": {
     "inputs": {
       "image": "image"
@@ -138,7 +125,7 @@
   "21": {
     "inputs": {
       "samples": [
-        "15",
+        "3",
         0
       ],
       "mask": [
@@ -174,16 +161,70 @@
   },
   "28": {
     "inputs": {
-      "image": "DALL·E 2023-12-17 14.42.58 - A cartoon illustration of a fireball playing an electric guitar on stage, singing heavy metal. The fireball character is depicted as lively and energe.png",
+      "image": "DALL·E 2023-12-20 19.47.20 - An impressionist illustration with a fisheye warped view from a wizard's tower, looking down on a village and countryside. The image should capture th.png",
       "upload": "image"
     },
     "class_type": "LoadImage"
   },
   "29": {
     "inputs": {
-      "image": "fireball-mask.png.png",
+      "image": "village-mask.png",
       "upload": "image"
     },
     "class_type": "LoadImage"
+  },
+  "30": {
+    "inputs": {
+      "seed": 667688655591525,
+      "steps": 4,
+      "cfg": 2,
+      "sampler_name": "lcm",
+      "scheduler": "sgm_uniform",
+      "denoise": 0.35000000000000003,
+      "model": [
+        "32",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "21",
+        0
+      ]
+    },
+    "class_type": "KSampler"
+  },
+  "31": {
+    "inputs": {
+      "lora_name": "LCMTurboMix_Euler_A_fix.safetensors",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "class_type": "LoraLoader"
+  },
+  "32": {
+    "inputs": {
+      "sampling": "lcm",
+      "zsnr": false,
+      "model": [
+        "31",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingDiscrete"
   }
 }

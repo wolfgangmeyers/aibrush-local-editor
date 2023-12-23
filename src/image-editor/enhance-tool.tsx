@@ -5,6 +5,8 @@ import { Renderer } from "./renderer";
 import {
     ImageUtilWorker,
     ImageWorkerRequest,
+    applyAlphaMask,
+    featherEdges,
     loadImageDataElement,
 } from "../lib/imageutil";
 import { SelectionTool, Controls as SelectionControls } from "./selection-tool";
@@ -345,29 +347,13 @@ export class EnhanceTool extends BaseTool implements Tool {
             selectionOverlay.width,
             selectionOverlay.height
         );
-        const id = this.newId();
-        const req: ImageWorkerRequest = {
-            id,
-            alphaMode: "none",
-            feather: true,
-            height: this.renderer.getHeight(),
-            width: this.renderer.getWidth(),
-            pixels: imageData.data,
-            selectionOverlay,
-        };
         if (maskData) {
-            req.alphaMode = "mask";
-            req.alphaPixels = maskData.data;
+            applyAlphaMask(imageData, maskData, false);
+        } else {
+            featherEdges(selectionOverlay, this.renderer.getWidth(), this.renderer.getHeight(), imageData);
         }
-        const resp = await this.worker.processRequest(req);
-        const updatedImageData = new ImageData(
-            resp.pixels,
-            imageData.width,
-            imageData.height
-        );
-        // remove canvas
-        canvas.remove();
-        return updatedImageData;
+        
+        return imageData;
     }
 
     cancel() {
