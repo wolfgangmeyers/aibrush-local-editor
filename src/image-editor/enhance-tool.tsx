@@ -348,7 +348,7 @@ export class EnhanceTool extends BaseTool implements Tool {
             selectionOverlay.height
         );
         if (maskData) {
-            applyAlphaMask(imageData, maskData, false);
+            applyAlphaMask(imageData, maskData, true);
         } else {
             featherEdges(selectionOverlay, this.renderer.getWidth(), this.renderer.getHeight(), imageData);
         }

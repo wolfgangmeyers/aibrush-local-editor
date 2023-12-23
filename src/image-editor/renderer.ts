@@ -661,12 +661,15 @@ export class Renderer {
         }
         let context = imageLayer.getContext("2d");
         if (context) {
-            const imageData = context.getImageData(
+            let imageData = context.getImageData(
                 selection.x,
                 selection.y,
                 selection.width,
                 selection.height
             );
+            if (layer === "mask") {
+                imageData = this.convertMaskToErasure(imageData);
+            }
             return imageData;
         }
     }

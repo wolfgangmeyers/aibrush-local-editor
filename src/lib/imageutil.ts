@@ -330,7 +330,7 @@ export function featherEdges(
 // }
 export function applyAlphaMask(imageData: ImageData, alphaMask: ImageData, invert: boolean) {
     const blurRadius = 10;
-    const edgeWidth = blurRadius * 2;
+    const edgeWidth = blurRadius * 3;
     const alphaCanvas = document.createElement("canvas");
     alphaCanvas.width = imageData.width + edgeWidth * 2;
     alphaCanvas.height = imageData.height + edgeWidth * 2;
@@ -338,39 +338,39 @@ export function applyAlphaMask(imageData: ImageData, alphaMask: ImageData, inver
     if (!alphaCtx) {
         throw new Error("Could not create canvas context");
     }
-
-    // draw an opaque rect to ensure the edges are blurred correctly
-    alphaCtx.fillStyle = 'white';
-    alphaCtx.fillRect(0, 0, edgeWidth, alphaCanvas.height);
-    alphaCtx.fillRect(0, 0, alphaCanvas.width, edgeWidth);
-    alphaCtx.fillRect(alphaCanvas.width - edgeWidth, 0, edgeWidth, alphaCanvas.height);
-    alphaCtx.fillRect(0, alphaCanvas.height - edgeWidth, alphaCanvas.width, edgeWidth);
+    
     alphaCtx.putImageData(alphaMask, edgeWidth, edgeWidth);
 
     const imageCanvas = document.createElement("canvas");
-    imageCanvas.width = imageData.width;
-    imageCanvas.height = imageData.height;
+    imageCanvas.width = imageData.width + edgeWidth * 2;
+    imageCanvas.height = imageData.height + edgeWidth * 2;
     const imageCtx = imageCanvas.getContext("2d");
     if (!imageCtx) {
         throw new Error("Could not create canvas context");
     }
-    imageCtx.putImageData(imageData, 0, 0);
+    imageCtx.fillStyle = 'white';
+    imageCtx.fillRect(0, 0, imageCanvas.width, imageCanvas.height);
 
     // apply alpha mask
     imageCtx.filter = `blur(${blurRadius}px)`;
     imageCtx.globalCompositeOperation = "destination-in";
-    imageCtx.drawImage(alphaCanvas, -edgeWidth, -edgeWidth);
+    imageCtx.drawImage(alphaCanvas, 0, 0);
 
-    const alphaData = imageCtx.getImageData(0, 0, alphaMask.width, alphaMask.height);
+    const alphaData = imageCtx.getImageData(edgeWidth, edgeWidth, alphaMask.width, alphaMask.height);
     for (let i = 0; i < alphaData.data.length; i += 4) {
-        const alpha = alphaData.data[i + 3];
-        if (alpha > 0) {
-            alphaData.data[i + 3] = Math.max(255 - (255 - alpha) * 2, 0);
-        }
-        // invert
+        let alpha = alphaData.data[i + 3];
         if (invert) {
-            alphaData.data[i + 3] = 255 - alphaData.data[i + 3];
+            alpha = 255 - alpha;
+            if (alpha < 255) {
+                alpha = Math.min(255, alpha * 2);
+            }
+        } else {
+            if (alpha > 0) {
+                alpha = Math.max(255 - (255 - alpha) * 2, 0);
+            }
         }
+        imageData.data[i + 3] = alpha;
+        
     }
 }
 
