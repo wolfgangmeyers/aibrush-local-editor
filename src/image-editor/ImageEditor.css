@@ -18,7 +18,7 @@
 /* extra large screen */
 @media (min-width: 1500px) {
     .image-editor-canvas {
-        width: 95%;
+        width: 100%;
         height: 95%;
     }
 

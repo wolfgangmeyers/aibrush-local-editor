@@ -11,6 +11,10 @@ export interface Tool {
     onMouseUp(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>): void;
     onMouseLeave(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>): void;
 
+    onPointerDown(event: React.PointerEvent<HTMLCanvasElement>): void;
+    onPointerMove(event: React.PointerEvent<HTMLCanvasElement>): void;
+    onPointerUp(event: React.PointerEvent<HTMLCanvasElement>): void;
+
     onTouchStart(event: React.TouchEvent<HTMLCanvasElement>): void;
     onTouchMove(event: React.TouchEvent<HTMLCanvasElement>): void;
     onTouchEnd(event: React.TouchEvent<HTMLCanvasElement>): void;
@@ -78,6 +82,9 @@ export class BaseTool implements Tool {
         }
     }
     onMouseLeave(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) {}
+    onPointerDown(event: React.PointerEvent<HTMLCanvasElement>) {}
+    onPointerMove(event: React.PointerEvent<HTMLCanvasElement>) {}
+    onPointerUp(event: React.PointerEvent<HTMLCanvasElement>) {}
 
     onTouchStart(event: React.TouchEvent<HTMLCanvasElement>) {
         if (this.touchHandle) {

@@ -18,6 +18,7 @@ import { Img2Img } from "../lib/workflows";
 
 // import img2img from "../workflows/dreamshaper_img2img64_api.json";
 import img2imgmask from "../workflows/dreamshaper_img2img64_mask_api.json";
+import { useCache } from "../lib/cache";
 
 
 type EnhanceToolState =
@@ -137,13 +138,13 @@ export class EnhanceTool extends BaseTool implements Tool {
         this.worker = new ImageUtilWorker();
     }
 
-    onMouseDown(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) {
+    onPointerDown(event: React.PointerEvent<HTMLCanvasElement>) {
         if (this.state == "select") {
             this.selectionTool.onMouseDown(event);
             return;
         }
         if (this.state == "mask") {
-            this.pencilTool.onMouseDown(event);
+            this.pencilTool.onPointerDown(event);
             return;
         }
         let { x, y } = this.zoomHelper.translateMouseToCanvasCoordinates(
@@ -236,13 +237,17 @@ export class EnhanceTool extends BaseTool implements Tool {
         }
     }
 
-    onMouseMove(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) {
+    onMouseMove(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>): void { }
+    onMouseDown(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>): void { }
+    onMouseUp(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>): void { }
+
+    onPointerMove(event: React.PointerEvent<HTMLCanvasElement>) {
         if (this.state == "select") {
             this.selectionTool.onMouseMove(event);
             return;
         }
         if (this.state == "mask") {
-            this.pencilTool.onMouseMove(event);
+            this.pencilTool.onPointerMove(event);
             return;
         }
         let { x, y } = this.zoomHelper.translateMouseToCanvasCoordinates(
@@ -259,12 +264,12 @@ export class EnhanceTool extends BaseTool implements Tool {
         }
     }
 
-    onMouseUp(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) {
+    onPointerUp(event: React.PointerEvent<HTMLCanvasElement>) {
         if (this.state == "select") {
             this.selectionTool.onMouseUp(event);
         }
         if (this.state == "mask") {
-            this.pencilTool.onMouseUp(event);
+            this.pencilTool.onPointerUp(event);
         }
         this.panning = false;
         this.erasing = false;
@@ -352,7 +357,7 @@ export class EnhanceTool extends BaseTool implements Tool {
         } else {
             featherEdges(selectionOverlay, this.renderer.getWidth(), this.renderer.getHeight(), imageData);
         }
-        
+
         return imageData;
     }
 
@@ -539,9 +544,10 @@ export const EnhanceControls: FC<ControlsProps> = ({
     renderer,
     tool,
 }) => {
-    const [variationStrength, setVariationStrength] = useState(0.5);
-    const [prompt, setPrompt] = useState(defaultPrompt);
-    const [negativePrompt, setNegativePrompt] = useState(
+    const [variationStrength, setVariationStrength] = useCache("denoise", 0.5);
+    const [prompt, setPrompt] = useCache("prompt", defaultPrompt);
+    const [negativePrompt, setNegativePrompt] = useCache(
+        "negative-prompt",
         defaultNegativePrompt
     );
     const [state, setState] = useState<EnhanceToolState>(tool.state);

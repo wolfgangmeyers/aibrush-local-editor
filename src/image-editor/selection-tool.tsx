@@ -14,6 +14,14 @@ export class SelectionTool extends BaseTool implements Tool {
     private selectionOverlayPreview: Rect | undefined;
     private outpaint?: boolean;
 
+    private selectionOverlayPreviewListener?: (selectionOverlay: Rect) => void;
+
+    onSelectionOverlayPreview(
+        listener: (selectionOverlay: Rect) => void
+    ): void {
+        this.selectionOverlayPreviewListener = listener;
+    }
+
     // private selectionWidth: number = 512;
     // private selectionHeight: number = 512;
 
@@ -87,8 +95,6 @@ export class SelectionTool extends BaseTool implements Tool {
     }
 
     onMouseMove(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) {
-        const imageWidth = this.renderer.getWidth();
-        const imageHeight = this.renderer.getHeight();
         if (this.panning) {
             this.zoomHelper.onPan(event);
         } else {
@@ -113,6 +119,12 @@ export class SelectionTool extends BaseTool implements Tool {
 
             if (!this.outpaint) {
                 this.selectionOverlayPreview = this.clamp(this.selectionOverlayPreview);
+            }
+
+            if (this.selectionOverlayPreviewListener) {
+                this.selectionOverlayPreviewListener(
+                    this.selectionOverlayPreview
+                );
             }
 
             

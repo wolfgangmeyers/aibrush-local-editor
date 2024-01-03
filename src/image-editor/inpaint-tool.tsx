@@ -22,6 +22,7 @@ type InpaintToolState =
     | undefined;
 
 import inpaintingxl from "../workflows/inpaintingxl-api.json";
+import { useCache } from "../lib/cache";
 
 export class InpaintTool extends BaseTool implements Tool {
     private selectionTool: SelectionTool;
@@ -47,6 +48,12 @@ export class InpaintTool extends BaseTool implements Tool {
     private dirtyListener?: (dirty: boolean) => void;
     private savedEncodedMask?: string; // preserve the mask when retrying
     private savedMaskData?: ImageData;
+
+    onSelectionOverlayPreview(
+        listener: (selectionOverlay: Rect) => void
+    ): void {
+        this.selectionTool.onSelectionOverlayPreview(listener);
+    }
 
     set dirty(dirty: boolean) {
         this._dirty = dirty;
@@ -488,9 +495,8 @@ const defaultNegativePrompt = "low quality, distorted, deformed, dull, boring, p
 export const InpaintControls: FC<ControlsProps> = ({
     tool,
 }) => {
-    const [count, setCount] = useState(4);
-    const [prompt, setPrompt] = useState(defaultPrompt);
-    const [negativePrompt, setNegativePrompt] = useState(defaultNegativePrompt);
+    const [prompt, setPrompt] = useCache("prompt", defaultPrompt);
+    const [negativePrompt, setNegativePrompt] = useCache("negative-prompt", defaultNegativePrompt);
     const [state, setState] = useState<InpaintToolState>(tool.state);
     const [progress, setProgress] = useState(0);
     const [error, setError] = useState<string | null>(null);
@@ -499,6 +505,9 @@ export const InpaintControls: FC<ControlsProps> = ({
     const [outpaint, setoutpaint] = useState<boolean | undefined>(
         tool.getArgs().outpaint
     );
+    const [selectionOverlayPreview, setSelectionOverlayPreview] = useState<Rect | undefined>();
+
+    tool.onSelectionOverlayPreview(setSelectionOverlayPreview);
 
     useEffect(() => {
         tool.updateArgs({
@@ -575,6 +584,13 @@ export const InpaintControls: FC<ControlsProps> = ({
                             </label>
                         </div>
                     </div>
+                    {selectionOverlayPreview && (
+                        <div>
+                            <label>Selection:</label>
+                            <br />
+                            {selectionOverlayPreview.x}, {selectionOverlayPreview.y}, {selectionOverlayPreview.width}, {selectionOverlayPreview.height}
+                        </div>
+                    )}
                 </>
             )}
 
@@ -742,7 +758,6 @@ export const InpaintControls: FC<ControlsProps> = ({
                         className="btn btn-primary btn-sm"
                         onClick={() => {
                             tool.updateArgs({
-                                count,
                                 prompt,
                                 negativePrompt,
                             });

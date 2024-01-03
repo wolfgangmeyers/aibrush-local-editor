@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import * as uuid from "uuid";
 
 import "./ImageEditor.css";
 import { createRenderer, Renderer } from "./renderer";
@@ -14,20 +13,11 @@ import {
 import { SmudgeTool, SmudgeControls } from "./smudge-tool";
 import { ImportExportControls } from "./import-export";
 import { BusyModal } from "../components/BusyModal";
-import moment from "moment";
-import { createEncodedThumbnail } from "../lib/imageutil";
 import { InpaintControls, InpaintTool } from "./inpaint-tool";
 
 interface CanPreventDefault {
     preventDefault: () => void;
 }
-
-// interface Props {
-//     generator: HordeGenerator;
-//     hordeClient: HordeClient;
-//     localImages: LocalImagesStore;
-//     savedImages: LocalImagesStore;
-// }
 
 interface ToolConfig {
     name: string;
@@ -249,7 +239,7 @@ export const ImageEditor = () => {
             </div>
             <div
                 className="row"
-                style={{ marginTop: "32px", paddingBottom: "120px" }}
+                style={{ marginTop: "32px", marginBottom: "0px" }}
             >
                 <div
                     className="col-lg-3"
@@ -348,6 +338,18 @@ export const ImageEditor = () => {
                                     preventDefault(e) &&
                                     tool &&
                                     tool.onTouchEnd(e)
+                                }
+                                onPointerMove={(e) =>
+                                    tool &&
+                                    tool.onPointerMove(e)
+                                }
+                                onPointerDown={(e) => 
+                                    tool &&
+                                    tool.onPointerDown(e)
+                                }
+                                onPointerUp={(e) =>
+                                    tool &&
+                                    tool.onPointerUp(e)
                                 }
                             ></canvas>
                             {showSelectionControls && (

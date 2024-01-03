@@ -54,7 +54,7 @@ export class PencilTool extends BaseTool implements Tool {
         super(renderer, name);
     }
 
-    private sync() {
+    private sync(brushSize?: number) {
         if (this.colorPicking) {
             this.renderer.setCursor({
                 x: this.lastX,
@@ -67,7 +67,7 @@ export class PencilTool extends BaseTool implements Tool {
             this.renderer.setCursor({
                 x: this.lastX,
                 y: this.lastY,
-                radius: this.brushSize / 2,
+                radius: (brushSize || this.brushSize) / 2,
                 color: this.brushColor,
                 type: "circle-fill",
             });
@@ -82,9 +82,19 @@ export class PencilTool extends BaseTool implements Tool {
     }
 
     onMouseDown(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) {
+        
+    }
+
+    onMouseMove(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>): void {
+        
+    }
+
+    onPointerDown(event: React.PointerEvent<HTMLCanvasElement>): void {
         if (this.colorPicking) {
             return;
         }
+        let brushSize = this.brushSize;
+        brushSize = event.pressure * this.brushSize * 2;
         if (event.button === 0) {
             let { x, y } = this.zoomHelper.translateMouseToCanvasCoordinates(
                 event.nativeEvent.offsetX,
@@ -93,7 +103,7 @@ export class PencilTool extends BaseTool implements Tool {
             this.renderer.drawPoint(
                 x,
                 y,
-                this.brushSize,
+                brushSize,
                 this.brushColor,
                 this.layer
             );
@@ -104,10 +114,12 @@ export class PencilTool extends BaseTool implements Tool {
         } else if (event.button === 1) {
             this.panning = true;
         }
-        this.sync();
+        this.sync(brushSize);
     }
 
-    onMouseMove(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>): void {
+    onPointerMove(event: React.PointerEvent<HTMLCanvasElement>): void {
+        let brushSize = this.brushSize;
+        brushSize = event.pressure * this.brushSize * 2;
         let { x, y } = this.zoomHelper.translateMouseToCanvasCoordinates(
             event.nativeEvent.offsetX,
             event.nativeEvent.offsetY
@@ -123,7 +135,7 @@ export class PencilTool extends BaseTool implements Tool {
                     this.lastY,
                     x,
                     y,
-                    this.brushSize,
+                    brushSize,
                     this.brushColor,
                     this.layer
                 );
@@ -132,10 +144,10 @@ export class PencilTool extends BaseTool implements Tool {
         }
         this.lastX = x;
         this.lastY = y;
-        this.sync();
+        this.sync(brushSize);
     }
 
-    onMouseUp(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>): void {
+    onPointerUp(event: React.PointerEvent<HTMLCanvasElement>): void {
         if (event.button === 0) {
             this.isDrawing = false;
             if (this.colorPicking) {
@@ -149,6 +161,10 @@ export class PencilTool extends BaseTool implements Tool {
             this.panning = false;
         }
         this.sync();
+    }
+
+    onMouseUp(event: React.MouseEvent<HTMLCanvasElement, MouseEvent>): void {
+        
     }
 
     onWheel(event: WheelEvent) {
