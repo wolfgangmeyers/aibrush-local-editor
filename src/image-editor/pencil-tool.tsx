@@ -233,7 +233,7 @@ function addToPalette(palette: string[], color: string): string[] {
 
 export const Controls: FC<ControlsProps> = ({ renderer, tool, colors }) => {
     const [brushSize, setBrushSize] = useState(10);
-    const [brushColor, setBrushColor] = useState(colors[0]);
+    const [brushColor, setBrushColor] = useState("#000000");
     const [palette, setPalette] = useState(colors);
     const [dirty, setDirty] = useState(false);
 
