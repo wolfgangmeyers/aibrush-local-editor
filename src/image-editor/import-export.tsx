@@ -5,6 +5,7 @@ import saveAs from "file-saver";
 import { Renderer } from "./renderer";
 import { BaseTool } from "./tool";
 import { Dropdown } from "react-bootstrap";
+import { useCache } from "../lib/cache";
 
 interface Props {
     renderer: Renderer;
@@ -14,6 +15,7 @@ interface Props {
 export const ImportExportControls: FC<Props> = ({ renderer, tool }) => {
 
     const [backupImage, setBackupImage] = useState<string | undefined>();
+    const [prompt, _] = useCache("prompt", "image");
 
     const onImageSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
@@ -42,7 +44,14 @@ export const ImportExportControls: FC<Props> = ({ renderer, tool }) => {
                 intArray[i] = byteString.charCodeAt(i);
             }
             const blob = new Blob([intArray], { type: `image/${format}` });
-            saveAs(blob, `image.${format}`);
+            let newFilename = prompt.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+            if (newFilename.length > 255) {
+                newFilename = newFilename.substring(0, 255);
+            }
+            if (newFilename.length === 0) {
+                newFilename = "image";
+            }
+            saveAs(blob, `${newFilename}.${format}`);
         }
     };
 
