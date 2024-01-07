@@ -23,8 +23,55 @@ export class Renderer {
     private offsetY: number;
     private width = 0;
     private height = 0;
+    private _renderReferenceImages = true;
 
     private snapshotListener: (() => void) | null = null;
+
+    private referenceImages: HTMLCanvasElement[] = [];
+
+    get renderReferenceImages(): boolean {
+        return this._renderReferenceImages;
+    }
+
+    set renderReferenceImages(render: boolean) {
+        this._renderReferenceImages = render;
+        this.render();
+    }
+
+    addReferenceImage(image: HTMLImageElement | HTMLCanvasElement) {
+        const canvas = document.createElement("canvas");
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const context = canvas.getContext("2d");
+        if (context) {
+            context.drawImage(image, 0, 0);
+            this.referenceImages.push(canvas);
+            this.render();
+        }
+    }
+
+    removeReferenceImage(index: number) {
+        this.referenceImages.splice(index, 1);
+        this.render();
+    }
+
+    referencImageCount(): number {
+        return this.referenceImages.length;
+    }
+
+    getEncodedReferenceImages(): string[] {
+        return this.referenceImages.map(image => {
+            const context = image.getContext("2d");
+            if (context) {
+                return this.imageDataToEncodedImage(context.getImageData(0, 0, image.width, image.height), "webp")!;
+            }
+            return "";
+        });
+    }
+
+    getReferenceImages(): HTMLCanvasElement[] {
+        return [...this.referenceImages];
+    }
 
     constructor(private readonly canvas: HTMLCanvasElement) {
         // invisible canvas elements
@@ -140,6 +187,7 @@ export class Renderer {
     render() {
         const context = this.canvas.getContext("2d");
         if (context) {
+            context.globalAlpha = 1;
             context.clearRect(0, 0, this.width, this.height);
             context.drawImage(this.backgroundLayer, 0, 0);
             // apply zoom and offset
@@ -164,6 +212,17 @@ export class Renderer {
             // context.drawImage(this.overlayLayer, 0, 0);
             this.drawOverlay(context, this.width, this.height);
             context.setTransform(1, 0, 0, 1, 0, 0);
+            if (this.renderReferenceImages) {
+                context.globalAlpha = 0.7;
+                let top = 10;
+                this.referenceImages.forEach(image => {
+                    const ratio = 100.0 / image.width;
+                    const width = image.width * ratio;
+                    const height = image.height * ratio;
+                    context.drawImage(image, this.canvas.width - width - 10, top, width, height);
+                    top += height + 10;
+                });
+            }
         }
     }
 

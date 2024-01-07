@@ -14,6 +14,7 @@ import { SmudgeTool, SmudgeControls } from "./smudge-tool";
 import { ImportExportControls } from "./import-export";
 import { BusyModal } from "../components/BusyModal";
 import { InpaintControls, InpaintTool } from "./inpaint-tool";
+import { ReferenceImagesControls } from "./reference-images";
 
 interface CanPreventDefault {
     preventDefault: () => void;
@@ -101,6 +102,21 @@ export const ImageEditor = () => {
             },
         },
         {
+            name: "reference images",
+            iconClass: "fas fa-images",
+            constructor: (r: Renderer) => new BaseTool(r, "reference images"),
+            defaultArgs: {},
+            renderControls: (t: Tool, renderer: Renderer) => {
+                return (
+                    <ReferenceImagesControls
+                        renderer={renderer}
+                        tool={t as BaseTool}
+                        key={"reference-images-controls"}
+                    />
+                );
+            },
+        },
+        {
             name: "import-export",
             iconClass: "fas fa-file-import",
             constructor: (r: Renderer) => new BaseTool(r, "import-export"),
@@ -114,7 +130,7 @@ export const ImageEditor = () => {
                     />
                 );
             },
-        },
+        }
     ];
 
     const [renderer, setRenderer] = useState<Renderer | null>(null);

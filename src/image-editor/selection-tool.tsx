@@ -175,7 +175,7 @@ export const Controls: React.FC<ControlsProps> = ({
     outpaint,
 }) => {
     const [aspectRatio, setAspectRatio] = useState(DEFAULT_ASPECT_RATIO);
-    // const [size, setSize] = useState(1);
+    const [size, setSize] = useState(1);
 
     useEffect(() => {
        
@@ -187,7 +187,7 @@ export const Controls: React.FC<ControlsProps> = ({
                     args.selectionOverlay.height
                 );
                 setAspectRatio(aspectRatio.id);
-                // setSize(args.selectionOverlay.width / aspectRatio.width);
+                setSize(args.selectionOverlay.width / aspectRatio.width);
                 tool.updateArgs(args);
             } else {
                 // set default args
@@ -252,7 +252,7 @@ export const Controls: React.FC<ControlsProps> = ({
                     setAspectRatio(aspectRatioId);
                 }}
             />
-            {/* <div className="form-group">
+            <div className="form-group">
                 <label htmlFor="size" style={{ width: "100%" }}>
                     Size
                     <small
@@ -275,7 +275,7 @@ export const Controls: React.FC<ControlsProps> = ({
                         setSize(parseFloat(event.target.value));
                     }}
                 />
-            </div> */}
+            </div>
         </>
     );
 };

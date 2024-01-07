@@ -8,7 +8,7 @@
       "scheduler": "sgm_uniform",
       "denoise": 0.65,
       "model": [
-        "13",
+        "24",
         0
       ],
       "positive": [
@@ -20,7 +20,7 @@
         0
       ],
       "latent_image": [
-        "18",
+        "21",
         0
       ]
     },
@@ -129,28 +129,87 @@
     },
     "class_type": "ETN_LoadImageBase64"
   },
-  "18": {
+  "19": {
     "inputs": {
-      "grow_mask_by": 6,
-      "pixels": [
-        "16",
+      "image": "mask"
+    },
+    "class_type": "ETN_LoadImageBase64"
+  },
+  "21": {
+    "inputs": {
+      "samples": [
+        "15",
         0
-      ],
-      "vae": [
-        "4",
-        2
       ],
       "mask": [
         "19",
         1
       ]
     },
-    "class_type": "VAEEncodeForInpaint"
+    "class_type": "SetLatentNoiseMask"
   },
-  "19": {
+  "22": {
     "inputs": {
-      "image": "mask"
+      "ipadapter_file": "ip-adapter_sdxl.bin"
+    },
+    "class_type": "IPAdapterModelLoader"
+  },
+  "23": {
+    "inputs": {
+      "clip_name": "ipadapter_sdxl_clipvision.safetensors"
+    },
+    "class_type": "CLIPVisionLoader"
+  },
+  "24": {
+    "inputs": {
+      "weight": 1,
+      "noise": 0,
+      "weight_type": "original",
+      "start_at": 0,
+      "end_at": 1,
+      "unfold_batch": false,
+      "ipadapter": [
+        "22",
+        0
+      ],
+      "clip_vision": [
+        "23",
+        0
+      ],
+      "image": [
+        "25",
+        0
+      ],
+      "model": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "IPAdapterApply"
+  },
+  "25": {
+    "inputs": {
+      "image": "image"
     },
     "class_type": "ETN_LoadImageBase64"
+  },
+  "26": {
+    "inputs": {
+      "image": "image"
+    },
+    "class_type": "ETN_LoadImageBase64"
+  },
+  "27": {
+    "inputs": {
+      "image1": [
+        "25",
+        0
+      ],
+      "image2": [
+        "26",
+        0
+      ]
+    },
+    "class_type": "ImageBatch"
   }
 }

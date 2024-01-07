@@ -18,6 +18,7 @@ import { Img2Img } from "../lib/workflows";
 
 // import img2img from "../workflows/dreamshaper_img2img64_api.json";
 import img2imgmask from "../workflows/dreamshaper_img2img64_mask_api.json";
+import img2imgmaskipadapter from "../workflows/dreamshaper_img2img64_mask_ipadapter_api.json";
 import { useCache } from "../lib/cache";
 
 
@@ -59,6 +60,7 @@ export class EnhanceTool extends BaseTool implements Tool {
     private errorListener?: (error: string | null) => void;
     private dirtyListener?: (dirty: boolean) => void;
     private savedEncodedMask?: string;
+    private referenceImagesWeight = 1;
 
     set dirty(dirty: boolean) {
         this._dirty = dirty;
@@ -303,7 +305,7 @@ export class EnhanceTool extends BaseTool implements Tool {
         this.prompt = args.prompt || "";
         this.negativePrompt = args.negativePrompt || "";
         this.variationStrength = args.variationStrength || 0.75;
-        console.log("updateArgs", args);
+        this.referenceImagesWeight = args.referenceImagesWeight || 1;
     }
 
     onChangeState(handler: (state: EnhanceToolState) => void) {
@@ -452,9 +454,17 @@ export class EnhanceTool extends BaseTool implements Tool {
             this.savedEncodedMask = encodedMask;
             maskData = this.renderer.getImageData(selectionOverlay!, "mask");
         }
-
-        const workflow: Img2Img = new Img2Img(img2imgmask, Math.random(), this.variationStrength);
+        let workflow: Img2Img;
+        const referenceImages = this.renderer.getEncodedReferenceImages();
+        if (referenceImages.length > 0) {
+            workflow = new Img2Img(img2imgmaskipadapter);
+            workflow.set_reference_images(referenceImages);
+            workflow.set_reference_images_weight(this.referenceImagesWeight);
+        } else {
+            workflow = new Img2Img(img2imgmask);
+        }
         workflow.set_seed(Math.floor(Math.random() * 1000000000));
+        workflow.set_denoise(this.variationStrength);
 
         this.state = "processing";
         let imageUrl: string;
@@ -554,6 +564,9 @@ export const EnhanceControls: FC<ControlsProps> = ({
     const [isMasked, setIsMasked] = useState<boolean>(tool.renderer.isMasked());
     const [progress, setProgress] = useState(0);
     const [error, setError] = useState<string | null>(null);
+    const [referenceImagesWeight, setReferenceImagesWeight] = useCache("reference-images-weight", 1);
+
+    const hasReferenceImages = renderer.referencImageCount() > 0;
 
 
     tool.onChangeState(setState);
@@ -678,6 +691,32 @@ export const EnhanceControls: FC<ControlsProps> = ({
                             How much variation to use
                         </small>
                     </div>
+                    {/* if we have reference images, allow the user to set the strength */}
+                    {hasReferenceImages && (
+                        <div className="form-group">
+                            <label htmlFor="reference-images-weight">
+                                Reference Images Weight:{" "}
+                                {Math.round(referenceImagesWeight * 100)}%
+                            </label>
+                            <input
+                                type="range"
+                                className="form-control-range"
+                                id="reference-images-weight"
+                                min="0"
+                                max="1"
+                                step="0.05"
+                                value={referenceImagesWeight}
+                                onChange={(e) => {
+                                    setReferenceImagesWeight(
+                                        parseFloat(e.target.value)
+                                    );
+                                }}
+                            />
+                            <small className="form-text text-muted">
+                                How much to use the reference images
+                            </small>
+                        </div>
+                    )}
                 </>
             )}
             {state === "erase" && (
@@ -778,6 +817,7 @@ export const EnhanceControls: FC<ControlsProps> = ({
                                     variationStrength,
                                     prompt,
                                     negativePrompt,
+                                    referenceImagesWeight,
                                 });
                                 tool.submit();
                             }}

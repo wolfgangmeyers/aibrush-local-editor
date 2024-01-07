@@ -37,9 +37,13 @@ export class Img2Img {
     private websocket_helper: WebsocketHelper;
     private image_fetcher: ImageFetcher;
     private workflow: any;
+    // ipadapter nodes for reference images
+    private ipadapter: any;
+    private imginput1: any;
+    private imginput2: any;
 
-    constructor(workflow: any, seed: number | null = null, denoise: number | null = null) {
-        this.workflow = JSON.parse(JSON.stringify(workflow));
+    constructor(workflowJSON: any) {
+        this.workflow = JSON.parse(JSON.stringify(workflowJSON));
         this.client_id = Math.random().toString();
         // this.checkpoint_loader = this.workflow["4"];
         this.prompt_pos = this.workflow["6"];
@@ -47,14 +51,14 @@ export class Img2Img {
         this.ksampler = this.workflow["3"];
         this.image_loader = this.workflow["16"];
         this.mask_loader = this.workflow["19"];
-        if (seed) {
-            this.ksampler["inputs"]["seed"] = seed;
-        }
-        if (denoise) {
-            this.ksampler["inputs"]["denoise"] = denoise;
-        }
         this.websocket_helper = new WebsocketHelper("ws://127.0.0.1:8188/ws?clientId=" + this.client_id);
         this.image_fetcher = new ImageFetcher("http://127.0.0.1:8188/view")
+
+        if (this.workflow["24"] && this.workflow["24"].class_type === "IPAdapterApply") {
+            this.ipadapter = this.workflow["24"];
+            this.imginput1 = this.workflow["25"];
+            this.imginput2 = this.workflow["26"];
+        }
     }
 
     set_seed(seed: number) {
@@ -63,6 +67,28 @@ export class Img2Img {
 
     set_denoise(denoise: number) {
         this.ksampler["inputs"]["denoise"] = denoise;
+    }
+
+    set_reference_images_weight(weight: number) {
+        if (!this.ipadapter) {
+            return;
+        }
+        this.ipadapter["inputs"]["weight"] = weight;
+    }
+
+    set_reference_images(encodedImages: string[]) {
+        if (!this.ipadapter) {
+            return;
+        }
+        if (encodedImages.length > 2) {
+            encodedImages = encodedImages.slice(0, 2);
+        }
+        this.imginput1["inputs"]["image"] = encodedImages[0];
+        this.ipadapter["inputs"]["image"][0] = "25" // set to single image load
+        if (encodedImages.length > 1) {
+            this.imginput2["inputs"]["image"] = encodedImages[1];
+            this.ipadapter["inputs"]["image"][0] = "27"; // set to batch images
+        }
     }
 
     run(prompt: string, negativePrompt: string, encoded_image: string, encoded_mask?: string, on_progress?: (progress: number) => void): Promise<string> {
