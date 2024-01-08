@@ -48,3 +48,10 @@ yarn dev
 ```
 
 Navigate to http://localhost:5173/ and you can use the editor.
+
+## Reference Images
+
+![Alt text](reference-images.png)
+
+Reference images use [IPAdapter](https://github.com/cubiq/ComfyUI_IPAdapter_plus) to guide diffusion towards the style
+and content of a given image. Please note that this takes up a lot of ram and may not work on your gpu.
