@@ -15,11 +15,17 @@ Unzip that on your system and edit the `run_nvidia_gpu.bat` file as follows:
 - The workflows included with this tool use [DreamshaperXL](https://civitai.com/models/112902/dreamshaper-xl). Download it into the `ComfyUI/models/checkpoints` folder.
 - Download the [SDXL Inpainting](https://civitai.com/models/146028/sdxl-inpainting-01-official-reupload) model and place in the `ComfyUI/models/unet` folder.
 - Download the [LCM&TurboMix LoRA](https://civitai.com/models/216190) model and place in the `ComfyUI/models/loras` folder.
-
+- Download the VIT-H clipvision model from https://huggingface.co/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors, rename to `ipadapter_clipvision_vith`, and place in `ComfyUI/models/clip_vision` folder.
+- Download the SDXL IPAdapter model from https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/ip-adapter-plus_sdxl_vit-h.safetensors and place in `ComfyUI/models/ipadapter` folder.
 
 ## Custom Nodes
 
-- Navigate to the `ComfyUI/custom_nodes` folder and git clone the https://github.com/Acly/comfyui-tooling-nodes repo.
+- Navigate to the `ComfyUI/custom_nodes` folder.
+
+```shell
+git clone https://github.com/Acly/comfyui-tooling-nodes
+git clone https://github.com/cubiq/ComfyUI_IPAdapter_plus.git
+```
 
 ## Running ComfyUI
 

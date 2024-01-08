@@ -150,13 +150,13 @@
   },
   "22": {
     "inputs": {
-      "ipadapter_file": "ip-adapter_sdxl.bin"
+      "ipadapter_file": "ip-adapter-plus_sdxl_vit-h.safetensors"
     },
     "class_type": "IPAdapterModelLoader"
   },
   "23": {
     "inputs": {
-      "clip_name": "ipadapter_sdxl_clipvision.safetensors"
+      "clip_name": "ipadapter_clipvision_vith.safetensors"
     },
     "class_type": "CLIPVisionLoader"
   },
