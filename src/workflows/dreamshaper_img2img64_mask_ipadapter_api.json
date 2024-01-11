@@ -8,7 +8,7 @@
       "scheduler": "sgm_uniform",
       "denoise": 0.65,
       "model": [
-        "24",
+        "4",
         0
       ],
       "positive": [
@@ -24,13 +24,19 @@
         0
       ]
     },
-    "class_type": "KSampler"
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "sampler"
+    }
   },
   "4": {
     "inputs": {
       "ckpt_name": "dreamshaperXL_turboDpmppSDE.safetensors"
     },
-    "class_type": "CheckpointLoaderSimple"
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "load_sdxl_checkpoint"
+    }
   },
   "5": {
     "inputs": {
@@ -38,7 +44,10 @@
       "height": 1024,
       "batch_size": 1
     },
-    "class_type": "EmptyLatentImage"
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "empty_latent_image"
+    }
   },
   "6": {
     "inputs": {
@@ -48,7 +57,10 @@
         1
       ]
     },
-    "class_type": "CLIPTextEncode"
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "positive_prompt"
+    }
   },
   "7": {
     "inputs": {
@@ -58,7 +70,10 @@
         1
       ]
     },
-    "class_type": "CLIPTextEncode"
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "negative_prompt"
+    }
   },
   "8": {
     "inputs": {
@@ -71,7 +86,10 @@
         2
       ]
     },
-    "class_type": "VAEDecode"
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "vae_decode"
+    }
   },
   "9": {
     "inputs": {
@@ -81,34 +99,10 @@
         0
       ]
     },
-    "class_type": "SaveImage"
-  },
-  "10": {
-    "inputs": {
-      "lora_name": "LCMTurboMix_Euler_A_fix.safetensors",
-      "strength_model": 1,
-      "strength_clip": 1,
-      "model": [
-        "4",
-        0
-      ],
-      "clip": [
-        "4",
-        1
-      ]
-    },
-    "class_type": "LoraLoader"
-  },
-  "13": {
-    "inputs": {
-      "sampling": "lcm",
-      "zsnr": false,
-      "model": [
-        "10",
-        0
-      ]
-    },
-    "class_type": "ModelSamplingDiscrete"
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "save_image"
+    }
   },
   "15": {
     "inputs": {
@@ -121,19 +115,28 @@
         2
       ]
     },
-    "class_type": "VAEEncode"
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "vae_encode"
+    }
   },
   "16": {
     "inputs": {
       "image": "image"
     },
-    "class_type": "ETN_LoadImageBase64"
+    "class_type": "ETN_LoadImageBase64",
+    "_meta": {
+      "title": "load_source_image"
+    }
   },
   "19": {
     "inputs": {
       "image": "mask"
     },
-    "class_type": "ETN_LoadImageBase64"
+    "class_type": "ETN_LoadImageBase64",
+    "_meta": {
+      "title": "load_mask"
+    }
   },
   "21": {
     "inputs": {
@@ -146,19 +149,28 @@
         1
       ]
     },
-    "class_type": "SetLatentNoiseMask"
+    "class_type": "SetLatentNoiseMask",
+    "_meta": {
+      "title": "set_latent_noise_mask"
+    }
   },
   "22": {
     "inputs": {
-      "ipadapter_file": "ip-adapter-plus_sdxl_vit-h.safetensors"
+      "ipadapter_file": "ip-adapter_sdxl.bin"
     },
-    "class_type": "IPAdapterModelLoader"
+    "class_type": "IPAdapterModelLoader",
+    "_meta": {
+      "title": "load_ipadapter"
+    }
   },
   "23": {
     "inputs": {
-      "clip_name": "ipadapter_clipvision_vith.safetensors"
+      "clip_name": "ipadapter_sdxl_clipvision.safetensors"
     },
-    "class_type": "CLIPVisionLoader"
+    "class_type": "CLIPVisionLoader",
+    "_meta": {
+      "title": "load_clip_vision"
+    }
   },
   "24": {
     "inputs": {
@@ -181,35 +193,62 @@
         0
       ],
       "model": [
-        "13",
+        "4",
         0
       ]
     },
-    "class_type": "IPAdapterApply"
+    "class_type": "IPAdapterApply",
+    "_meta": {
+      "title": "apply_ipadapter"
+    }
   },
   "25": {
     "inputs": {
       "image": "image"
     },
-    "class_type": "ETN_LoadImageBase64"
+    "class_type": "ETN_LoadImageBase64",
+    "_meta": {
+      "title": "load_reference_image_1"
+    }
   },
   "26": {
     "inputs": {
-      "image": "image"
+      "lora_name": "InkpunkXL_civit_16.safetensors",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "4",
+        0
+      ]
     },
-    "class_type": "ETN_LoadImageBase64"
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "load_lora_1"
+    }
   },
   "27": {
+    "inputs": {
+      "image": "image"
+    },
+    "class_type": "ETN_LoadImageBase64",
+    "_meta": {
+      "title": "load_reference_image_2"
+    }
+  },
+  "28": {
     "inputs": {
       "image1": [
         "25",
         0
       ],
       "image2": [
-        "26",
+        "27",
         0
       ]
     },
-    "class_type": "ImageBatch"
+    "class_type": "ImageBatch",
+    "_meta": {
+      "title": "batch_reference_images_1"
+    }
   }
 }

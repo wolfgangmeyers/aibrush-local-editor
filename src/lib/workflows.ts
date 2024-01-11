@@ -27,81 +27,151 @@ function getTransparentImage() {
     return defaultTransparentImage;
 }
 
+function getIds(workflow: any): any {
+    const nameLookup: any = {};
+    const ids = Object.keys(workflow);
+    for (const id of ids) {
+        const node = workflow[id];
+        const title = node._meta.title;
+        nameLookup[title] = id;
+    }
+    return nameLookup;
+
+}
+
 export class Img2Img {
     private client_id: string;
-    private prompt_pos: any;
-    private prompt_neg: any;
-    private ksampler: any;
-    private image_loader: any;
-    private mask_loader: any;
+    // private prompt_pos: any;
+    // private prompt_neg: any;
+    // private ksampler: any;
+    // private image_loader: any;
+    // private mask_loader: any;
     private websocket_helper: WebsocketHelper;
     private image_fetcher: ImageFetcher;
     private workflow: any;
     // ipadapter nodes for reference images
-    private ipadapter: any;
-    private imginput1: any;
-    private imginput2: any;
+    // private ipadapter: any;
+    // private imginput1: any;
+    // private imginput2: any;
+
+    private ids: any;
 
     constructor(workflowJSON: any) {
         this.workflow = JSON.parse(JSON.stringify(workflowJSON));
         this.client_id = Math.random().toString();
+        this.ids = getIds(this.workflow);
+
         // this.checkpoint_loader = this.workflow["4"];
-        this.prompt_pos = this.workflow["6"];
-        this.prompt_neg = this.workflow["7"];
-        this.ksampler = this.workflow["3"];
-        this.image_loader = this.workflow["16"];
-        this.mask_loader = this.workflow["19"];
+        // this.prompt_pos = this.workflow["6"];
+        // this.prompt_neg = this.workflow["7"];
+        // this.ksampler = this.workflow["3"];
+        // this.image_loader = this.workflow["16"];
+        // this.mask_loader = this.workflow["19"];
         this.websocket_helper = new WebsocketHelper("ws://127.0.0.1:8188/ws?clientId=" + this.client_id);
         this.image_fetcher = new ImageFetcher("http://127.0.0.1:8188/view")
 
-        if (this.workflow["24"] && this.workflow["24"].class_type === "IPAdapterApply") {
-            this.ipadapter = this.workflow["24"];
-            this.imginput1 = this.workflow["25"];
-            this.imginput2 = this.workflow["26"];
-        }
+        // if (this.workflow["24"] && this.workflow["24"].class_type === "IPAdapterApply") {
+        //     this.ipadapter = this.workflow["24"];
+        //     this.imginput1 = this.workflow["25"];
+        //     this.imginput2 = this.workflow["26"];
+        // }
+    }
+
+    private node(title: string): any {
+        return this.workflow[this.id(title)];
+    }
+
+    private id(title: string): string {
+        return this.ids[title];
     }
 
     set_seed(seed: number) {
-        this.ksampler["inputs"]["seed"] = seed;
+        this.node("sampler").inputs.seed = seed;
     }
 
     set_denoise(denoise: number) {
-        this.ksampler["inputs"]["denoise"] = denoise;
+        // this.ksampler["inputs"]["denoise"] = denoise;
+        this.node("sampler").inputs.denoise = denoise;
     }
 
     set_reference_images_weight(weight: number) {
-        if (!this.ipadapter) {
-            return;
-        }
-        this.ipadapter["inputs"]["weight"] = weight;
+        // if (!this.ipadapter) {
+        //     return;
+        // }
+        // this.ipadapter["inputs"]["weight"] = weight;
+        this.node("apply_ipadapter").inputs.weight = weight;
     }
 
     set_reference_images(encodedImages: string[]) {
-        if (!this.ipadapter) {
-            return;
+        // reverse the order of the encoded images so that the first image provided
+        // has the highest weight
+        encodedImages.reverse();
+        let refImageCount = 1;
+        this.node(`load_reference_image_${refImageCount}`).inputs.image = encodedImages.pop();
+        if (encodedImages.length > 0) {
+            refImageCount++;
+            this.node(`load_reference_image_${refImageCount}`).inputs.image = encodedImages.pop();
+            this.node("apply_ipadapter").inputs.image = [
+                this.id(`batch_reference_images_${refImageCount - 1}`),
+                0
+            ];
         }
-        if (encodedImages.length > 2) {
-            encodedImages = encodedImages.slice(0, 2);
+        // no nodes exist in the workflow for more than 2 reference images
+        // so we need to add them to the workflow and update references
+        while (encodedImages.length > 0) {
+            refImageCount++;
+            const load_reference_image_id = `load_reference_image_${refImageCount}`;
+            this.workflow[load_reference_image_id] = {
+                inputs: {
+                    image: encodedImages.pop()
+                },
+                class_type: "ETN_LoadImageBase64",
+                _meta: {
+                    title: load_reference_image_id
+                }
+            }
+            this.ids[load_reference_image_id] = load_reference_image_id;
+
+            const batch_reference_images_id = `batch_reference_images_${refImageCount - 1}`;
+            this.workflow[batch_reference_images_id] = {
+                inputs: {
+                    image1: [
+                        this.id(`batch_reference_images_${refImageCount - 2}`),
+                        0
+                    ],
+                    image2: [
+                        this.id(load_reference_image_id),
+                        0
+                    ]
+                },
+                class_type: "ImageBatch",
+                _meta: {
+                    title: batch_reference_images_id
+                }
+            }
+            this.ids[batch_reference_images_id] = batch_reference_images_id;
+            this.node("apply_ipadapter").inputs.image = [
+                this.id(batch_reference_images_id),
+                0
+            ];
         }
-        this.imginput1["inputs"]["image"] = encodedImages[0];
-        this.ipadapter["inputs"]["image"][0] = "25" // set to single image load
-        if (encodedImages.length > 1) {
-            this.imginput2["inputs"]["image"] = encodedImages[1];
-            this.ipadapter["inputs"]["image"][0] = "27"; // set to batch images
-        }
+        this.node("sampler").inputs.model = [
+            this.id("apply_ipadapter"),
+            0
+        ];
+        console.log("set_reference_images complete. workflow: ", JSON.stringify(this.workflow, null, 2));
     }
 
     run(prompt: string, negativePrompt: string, encoded_image: string, encoded_mask?: string, on_progress?: (progress: number) => void): Promise<string> {
         return new Promise((resolve) => {
             console.log("running...");
-            this.prompt_pos["inputs"]["text"] = prompt;
-            this.prompt_neg["inputs"]["text"] = negativePrompt;
-            // encode the image as png and base64
-            this.image_loader["inputs"]["image"] = encoded_image;
+            this.node("positive_prompt").inputs.text = prompt;
+            this.node("negative_prompt").inputs.text = negativePrompt;
+            this.node("load_source_image").inputs.image = encoded_image;
             if (encoded_mask) {
-                this.mask_loader["inputs"]["image"] = encoded_mask;
+                this.node("load_mask").inputs.image = encoded_mask;
             } else {
-                this.mask_loader["inputs"]["image"] = getTransparentImage();
+                this.node("load_mask").inputs.image = getTransparentImage();
             }
             const p = {
                 "prompt": this.workflow,

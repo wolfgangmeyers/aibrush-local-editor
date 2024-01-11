@@ -34,7 +34,7 @@ export const ReferenceImagesControls: FC<Props> = ({ renderer }) => {
 
     return (
         <>
-            {referenceImages.length < 2 && <div className="form-group" style={{ marginTop: "16px" }}>
+            {referenceImages.length < 10 && <div className="form-group" style={{ marginTop: "16px" }}>
                 <label
                     id="loadimage-wrapper"
                     className={`btn btn-primary `}

@@ -4,7 +4,6 @@ import { Tool, BaseTool } from "./tool";
 import { Renderer } from "./renderer";
 import {
     ImageUtilWorker,
-    ImageWorkerRequest,
     applyAlphaMask,
     featherEdges,
     loadImageDataElement,
@@ -17,7 +16,7 @@ import { Rect } from "./models";
 import { Img2Img } from "../lib/workflows";
 
 // import img2img from "../workflows/dreamshaper_img2img64_api.json";
-import img2imgmask from "../workflows/dreamshaper_img2img64_mask_api.json";
+// import img2imgmask from "../workflows/dreamshaper_img2img64_mask_api.json";
 import img2imgmaskipadapter from "../workflows/dreamshaper_img2img64_mask_ipadapter_api.json";
 import { useCache } from "../lib/cache";
 
@@ -456,12 +455,10 @@ export class EnhanceTool extends BaseTool implements Tool {
         }
         let workflow: Img2Img;
         const referenceImages = this.renderer.getEncodedReferenceImages();
+        workflow = new Img2Img(img2imgmaskipadapter);
         if (referenceImages.length > 0) {
-            workflow = new Img2Img(img2imgmaskipadapter);
             workflow.set_reference_images(referenceImages);
             workflow.set_reference_images_weight(this.referenceImagesWeight);
-        } else {
-            workflow = new Img2Img(img2imgmask);
         }
         workflow.set_seed(Math.floor(Math.random() * 1000000000));
         workflow.set_denoise(this.variationStrength);
