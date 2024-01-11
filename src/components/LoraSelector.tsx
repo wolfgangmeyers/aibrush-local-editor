@@ -51,13 +51,13 @@ export const LoraSelector: FC<Props> = ({ loras, selectedLoras, onClose, onSelec
                     </select>
                 </div>
                 <div className="form-group">
-                    <label htmlFor="strength">Strength</label>
+                    <label htmlFor="strength">Strength: {strength}</label>
                     <input
                         type="range"
                         className="form-control-range"
                         id="strength"
                         min="0"
-                        max="1"
+                        max="2"
                         step="0.1"
                         value={strength}
                         onChange={(event) => setStrength(parseFloat(event.target.value))}

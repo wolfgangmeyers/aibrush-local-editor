@@ -814,7 +814,16 @@ export const EnhanceControls: FC<ControlsProps> = ({
                     <>
                         <button
                             className="btn btn-primary btn-sm"
-                            onClick={() => tool.submit()}
+                            onClick={() => {
+                                tool.updateArgs({
+                                    variationStrength,
+                                    prompt,
+                                    negativePrompt,
+                                    referenceImagesWeight,
+                                    selectedLoras: JSON.parse(JSON.stringify(selectedLoras)),
+                                });
+                                tool.submit();
+                            }}
                             style={{ marginRight: "8px" }}
                         >
                             {/* retry button */}
