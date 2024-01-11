@@ -21,7 +21,7 @@ type InpaintToolState =
     | "confirm"
     | undefined;
 
-import inpaintingxl from "../workflows/inpaintingxl-api.json";
+import inpaintingxl from "../workflows/inpaintingxl_api.json";
 import { useCache } from "../lib/cache";
 
 export class InpaintTool extends BaseTool implements Tool {
@@ -48,6 +48,7 @@ export class InpaintTool extends BaseTool implements Tool {
     private dirtyListener?: (dirty: boolean) => void;
     private savedEncodedMask?: string; // preserve the mask when retrying
     private savedMaskData?: ImageData;
+    private referenceImagesWeight = 1;
 
     onSelectionOverlayPreview(
         listener: (selectionOverlay: Rect) => void
@@ -247,6 +248,7 @@ export class InpaintTool extends BaseTool implements Tool {
         this.negativePrompt = args.negativePrompt || "";
         this.count = args.count || 4;
         this.brushSize = args.brushSize || 10;
+        this.referenceImagesWeight = args.referenceImagesWeight || 1;
 
         this.updateCursor(
             this.renderer.getWidth() / 2,
@@ -373,7 +375,7 @@ export class InpaintTool extends BaseTool implements Tool {
             console.error("Failed to get mask data");
             return;
         }
-        
+
         if (!this.savedEncodedMask) {
             // hack to restore the image
             this.renderer.snapshot();
@@ -393,9 +395,13 @@ export class InpaintTool extends BaseTool implements Tool {
             return;
         }
 
-        const workflow: Img2Img = new Img2Img(inpaintingxl, Math.random(), 1);
+        const workflow: Img2Img = new Img2Img(inpaintingxl);
+        const referenceImages = this.renderer.getEncodedReferenceImages();
+        if (referenceImages.length > 0) {
+            workflow.set_reference_images(referenceImages);
+            workflow.set_reference_images_weight(this.referenceImagesWeight);
+        }
         workflow.set_seed(Math.floor(Math.random() * 1000000000));
-
 
         this.state = "processing";
         let imageUrl: string;
@@ -506,6 +512,9 @@ export const InpaintControls: FC<ControlsProps> = ({
         tool.getArgs().outpaint
     );
     const [selectionOverlayPreview, setSelectionOverlayPreview] = useState<Rect | undefined>();
+    const [referenceImagesWeight, setReferenceImagesWeight] = useCache("reference-images-weight", 1);
+
+    const hasReferenceImages = tool.renderer.referencImageCount() > 0;
 
     tool.onSelectionOverlayPreview(setSelectionOverlayPreview);
 
@@ -666,6 +675,32 @@ export const InpaintControls: FC<ControlsProps> = ({
                             Customize the negative text prompt here
                         </small>
                     </div>
+                    {/* if we have reference images, allow the user to set the strength */}
+                    {hasReferenceImages && (
+                        <div className="form-group">
+                            <label htmlFor="reference-images-weight">
+                                Reference Images Weight:{" "}
+                                {Math.round(referenceImagesWeight * 100)}%
+                            </label>
+                            <input
+                                type="range"
+                                className="form-control-range"
+                                id="reference-images-weight"
+                                min="0"
+                                max="1"
+                                step="0.05"
+                                value={referenceImagesWeight}
+                                onChange={(e) => {
+                                    setReferenceImagesWeight(
+                                        parseFloat(e.target.value)
+                                    );
+                                }}
+                            />
+                            <small className="form-text text-muted">
+                                How much to use the reference images
+                            </small>
+                        </div>
+                    )}
                 </>
             )}
 
@@ -760,6 +795,7 @@ export const InpaintControls: FC<ControlsProps> = ({
                             tool.updateArgs({
                                 prompt,
                                 negativePrompt,
+                                referenceImagesWeight
                             });
                             tool.submit();
                         }}

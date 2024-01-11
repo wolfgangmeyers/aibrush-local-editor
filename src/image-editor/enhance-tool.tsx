@@ -1,4 +1,4 @@
-import React, { FC, useState } from "react";
+import React, { FC, useEffect, useState } from "react";
 
 import { Tool, BaseTool } from "./tool";
 import { Renderer } from "./renderer";
@@ -19,6 +19,10 @@ import { Img2Img } from "../lib/workflows";
 // import img2imgmask from "../workflows/dreamshaper_img2img64_mask_api.json";
 import img2imgmaskipadapter from "../workflows/dreamshaper_img2img64_mask_ipadapter_api.json";
 import { useCache } from "../lib/cache";
+import { fetcher } from "../lib/comfyfetcher";
+import { LoraSelector } from "../components/LoraSelector";
+import { SelectedLora } from "../lib/loras";
+import { SelectedLoraTag } from "../components/SelectedLora";
 
 
 type EnhanceToolState =
@@ -60,6 +64,7 @@ export class EnhanceTool extends BaseTool implements Tool {
     private dirtyListener?: (dirty: boolean) => void;
     private savedEncodedMask?: string;
     private referenceImagesWeight = 1;
+    private selectedLoras: SelectedLora[] = [];
 
     set dirty(dirty: boolean) {
         this._dirty = dirty;
@@ -305,6 +310,7 @@ export class EnhanceTool extends BaseTool implements Tool {
         this.negativePrompt = args.negativePrompt || "";
         this.variationStrength = args.variationStrength || 0.75;
         this.referenceImagesWeight = args.referenceImagesWeight || 1;
+        this.selectedLoras = JSON.parse(JSON.stringify(args.selectedLoras || []));
     }
 
     onChangeState(handler: (state: EnhanceToolState) => void) {
@@ -460,6 +466,9 @@ export class EnhanceTool extends BaseTool implements Tool {
             workflow.set_reference_images(referenceImages);
             workflow.set_reference_images_weight(this.referenceImagesWeight);
         }
+        if (this.selectedLoras.length > 0) {
+            workflow.set_selected_loras(this.selectedLoras);
+        }
         workflow.set_seed(Math.floor(Math.random() * 1000000000));
         workflow.set_denoise(this.variationStrength);
 
@@ -562,14 +571,24 @@ export const EnhanceControls: FC<ControlsProps> = ({
     const [progress, setProgress] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [referenceImagesWeight, setReferenceImagesWeight] = useCache("reference-images-weight", 1);
+    const [loras, setLoras] = useState<string[]>([]);
+    const [selectedLoras, setSelectedLoras] = useCache<SelectedLora[]>("selected-loras", []);
+    const [selectingLoras, setSelectingLoras] = useState(false);
 
     const hasReferenceImages = renderer.referencImageCount() > 0;
+    console.log("selectedLoras", selectedLoras);
 
 
     tool.onChangeState(setState);
     tool.onChangeMask(setIsMasked);
     tool.onProgress(setProgress);
     tool.onError(setError);
+
+    useEffect(() => {
+        fetcher.fetch_object_info().then(objectInfo => {
+            setLoras(objectInfo.LoraLoader.input.required.lora_name[0]);
+        })
+    }, []);
 
     if (state == "processing" || state == "uploading") {
         return (
@@ -687,6 +706,16 @@ export const EnhanceControls: FC<ControlsProps> = ({
                         <small className="form-text text-muted">
                             How much variation to use
                         </small>
+                    </div>
+                    {/* loras */}
+                    <div className="form-group">
+                        <label htmlFor="loras">Loras</label>
+                        {selectedLoras.map(lora => (
+                            <SelectedLoraTag key={`selected-lora-${lora}`} lora={lora} onRemove={(lora) => setSelectedLoras(selectedLoras => selectedLoras.filter(selectedLora => selectedLora.name !== lora.name))} />
+                        ))}
+                        <button style={{marginTop: "8px"}} className="btn btn-primary btn-sm form-control" onClick={() => setSelectingLoras(true)}>
+                            <i className="fas fa-plus" />&nbsp;Add
+                        </button>
                     </div>
                     {/* if we have reference images, allow the user to set the strength */}
                     {hasReferenceImages && (
@@ -815,6 +844,7 @@ export const EnhanceControls: FC<ControlsProps> = ({
                                     prompt,
                                     negativePrompt,
                                     referenceImagesWeight,
+                                    selectedLoras: JSON.parse(JSON.stringify(selectedLoras)),
                                 });
                                 tool.submit();
                             }}
@@ -841,6 +871,15 @@ export const EnhanceControls: FC<ControlsProps> = ({
                     </>
                 )}
             </div>
+            {selectingLoras && <LoraSelector
+                loras={loras}
+                onClose={() => setSelectingLoras(false)}
+                onSelect={(selected) => {
+                    setSelectedLoras(selectedLoras => [...selectedLoras, selected]);
+                    setSelectingLoras(false);
+                }}
+                selectedLoras={selectedLoras.map(lora => lora.name)}
+            />}
         </div>
     );
 };

@@ -2,7 +2,8 @@
 
 
 import { WebsocketHelper } from "./websocket";
-import { ImageFetcher } from "./imagefetcher";
+import { ComfyFetcher, fetcher } from "./comfyfetcher";
+import { SelectedLora } from "./loras";
 
 let defaultTransparentImage = "";
 
@@ -41,18 +42,9 @@ function getIds(workflow: any): any {
 
 export class Img2Img {
     private client_id: string;
-    // private prompt_pos: any;
-    // private prompt_neg: any;
-    // private ksampler: any;
-    // private image_loader: any;
-    // private mask_loader: any;
     private websocket_helper: WebsocketHelper;
-    private image_fetcher: ImageFetcher;
+    // private comfy_fetcher: ComfyFetcher;
     private workflow: any;
-    // ipadapter nodes for reference images
-    // private ipadapter: any;
-    // private imginput1: any;
-    // private imginput2: any;
 
     private ids: any;
 
@@ -60,21 +52,8 @@ export class Img2Img {
         this.workflow = JSON.parse(JSON.stringify(workflowJSON));
         this.client_id = Math.random().toString();
         this.ids = getIds(this.workflow);
-
-        // this.checkpoint_loader = this.workflow["4"];
-        // this.prompt_pos = this.workflow["6"];
-        // this.prompt_neg = this.workflow["7"];
-        // this.ksampler = this.workflow["3"];
-        // this.image_loader = this.workflow["16"];
-        // this.mask_loader = this.workflow["19"];
         this.websocket_helper = new WebsocketHelper("ws://127.0.0.1:8188/ws?clientId=" + this.client_id);
-        this.image_fetcher = new ImageFetcher("http://127.0.0.1:8188/view")
-
-        // if (this.workflow["24"] && this.workflow["24"].class_type === "IPAdapterApply") {
-        //     this.ipadapter = this.workflow["24"];
-        //     this.imginput1 = this.workflow["25"];
-        //     this.imginput2 = this.workflow["26"];
-        // }
+        // this.comfy_fetcher = new ComfyFetcher("http://127.0.0.1:8188")
     }
 
     private node(title: string): any {
@@ -90,15 +69,10 @@ export class Img2Img {
     }
 
     set_denoise(denoise: number) {
-        // this.ksampler["inputs"]["denoise"] = denoise;
         this.node("sampler").inputs.denoise = denoise;
     }
 
     set_reference_images_weight(weight: number) {
-        // if (!this.ipadapter) {
-        //     return;
-        // }
-        // this.ipadapter["inputs"]["weight"] = weight;
         this.node("apply_ipadapter").inputs.weight = weight;
     }
 
@@ -159,12 +133,38 @@ export class Img2Img {
             this.id("apply_ipadapter"),
             0
         ];
+        if (this.node("refiner_sampler")) {
+            this.node("refiner_sampler").inputs.model = [
+                this.id("apply_ipadapter"),
+                0
+            ];
+        }
         console.log("set_reference_images complete. workflow: ", JSON.stringify(this.workflow, null, 2));
+    }
+
+    set_selected_loras(selected_loras: SelectedLora[]) {
+        if (selected_loras.length > 0) {
+            let lora = selected_loras.pop();
+            this.node("load_lora_1").inputs.lora_name = lora?.name;
+            this.node("load_lora_1").inputs.strength_model = lora?.strength;
+            this.node("load_lora_1").inputs.strength_clip = lora?.strength;
+            this.node("load_lora_1").inputs.model = JSON.parse(JSON.stringify(
+                this.node("sampler").inputs.model
+            ));
+            this.node("load_lora_1").inputs.clip = [
+                this.id("load_sdxl_checkpoint"),
+                1
+            ];
+            this.node("sampler").inputs.model = [
+                this.id("load_lora_1"),
+                0
+            ];
+        }
     }
 
     run(prompt: string, negativePrompt: string, encoded_image: string, encoded_mask?: string, on_progress?: (progress: number) => void): Promise<string> {
         return new Promise((resolve) => {
-            console.log("running...");
+            console.log("running...", JSON.stringify(this.workflow, null, 2));
             this.node("positive_prompt").inputs.text = prompt;
             this.node("negative_prompt").inputs.text = negativePrompt;
             this.node("load_source_image").inputs.image = encoded_image;
@@ -191,7 +191,7 @@ export class Img2Img {
                     // wait for the prompt to complete
                     const handle_websocket_completion = async (output: any) => {
                         // get the image
-                        const dataUrl = await this.image_fetcher.fetch_image(output["images"][0]["filename"]);
+                        const dataUrl = await fetcher.fetch_image(output["images"][0]["filename"]);
                         // call the callback with the image
                         resolve(dataUrl);
                     };

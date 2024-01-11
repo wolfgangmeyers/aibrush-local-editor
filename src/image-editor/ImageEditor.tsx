@@ -34,7 +34,7 @@ delete anonymousClient.defaults.headers.common["Authorization"];
 export const ImageEditor = () => {
     const [showSelectionControls, setShowSelectionControls] = useState(false);
     const tools: Array<ToolConfig> = [
-        
+
         {
             name: "enhance",
             iconClass: "fas fa-magic",
@@ -187,7 +187,7 @@ export const ImageEditor = () => {
     useEffect(() => {
         if (canvasRef.current) {
             const renderer = createRenderer(canvasRef.current);
-            
+
             setRenderer(renderer);
             const image = new Image();
             image.src = "blank-canvas.jpg";
@@ -195,7 +195,7 @@ export const ImageEditor = () => {
                 renderer.setBaseImage(image);
             };
         }
-        
+
     }, [canvasRef.current])
 
     // implement a useEffect hook that resizes the canvas (renderer.updateCanvasSize(width, height)) when the window is resized, and also on initial load
@@ -248,14 +248,14 @@ export const ImageEditor = () => {
         <>
             <div className="row">
                 <div className="col-12">
-                    <h1 style={{ fontSize: "40px", textAlign: "left" }}>
+                    <h1 style={{ fontSize: "20px", marginTop: "8px", textAlign: "left" }}>
                         &nbsp; AiBrush Local Editor
                     </h1>
                 </div>
             </div>
             <div
                 className="row"
-                style={{ marginTop: "32px", marginBottom: "0px" }}
+                style={{ marginTop: "8px", marginBottom: "0px" }}
             >
                 <div
                     className="col-lg-3"
@@ -359,7 +359,7 @@ export const ImageEditor = () => {
                                     tool &&
                                     tool.onPointerMove(e)
                                 }
-                                onPointerDown={(e) => 
+                                onPointerDown={(e) =>
                                     tool &&
                                     tool.onPointerDown(e)
                                 }
