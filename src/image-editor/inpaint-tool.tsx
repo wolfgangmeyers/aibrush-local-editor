@@ -23,6 +23,9 @@ type InpaintToolState =
 
 import inpaintingxl from "../workflows/inpaintingxl_api.json";
 import { useCache } from "../lib/cache";
+import { SelectedLora } from "../lib/loras";
+import { LoraSelector } from "../components/LoraSelector";
+import { SelectedLoraTag } from "../components/SelectedLora";
 
 export class InpaintTool extends BaseTool implements Tool {
     private selectionTool: SelectionTool;
@@ -49,6 +52,7 @@ export class InpaintTool extends BaseTool implements Tool {
     private savedEncodedMask?: string; // preserve the mask when retrying
     private savedMaskData?: ImageData;
     private referenceImagesWeight = 1;
+    private selectedLoras: SelectedLora[] = [];
 
     onSelectionOverlayPreview(
         listener: (selectionOverlay: Rect) => void
@@ -249,6 +253,7 @@ export class InpaintTool extends BaseTool implements Tool {
         this.count = args.count || 4;
         this.brushSize = args.brushSize || 10;
         this.referenceImagesWeight = args.referenceImagesWeight || 1;
+        this.selectedLoras = JSON.parse(JSON.stringify(args.selectedLoras || []));
 
         this.updateCursor(
             this.renderer.getWidth() / 2,
@@ -401,6 +406,9 @@ export class InpaintTool extends BaseTool implements Tool {
             workflow.set_reference_images(referenceImages);
             workflow.set_reference_images_weight(this.referenceImagesWeight);
         }
+        if (this.selectedLoras.length > 0) {
+            workflow.set_selected_loras(this.selectedLoras);
+        }
         workflow.set_seed(Math.floor(Math.random() * 1000000000));
 
         this.state = "processing";
@@ -513,6 +521,9 @@ export const InpaintControls: FC<ControlsProps> = ({
     );
     const [selectionOverlayPreview, setSelectionOverlayPreview] = useState<Rect | undefined>();
     const [referenceImagesWeight, setReferenceImagesWeight] = useCache("reference-images-weight", 1);
+    const [loras, setLoras] = useState<string[]>([]);
+    const [selectedLoras, setSelectedLoras] = useCache<SelectedLora[]>("selected-loras", []);
+    const [selectingLoras, setSelectingLoras] = useState(false);
 
     const hasReferenceImages = tool.renderer.referencImageCount() > 0;
 
@@ -675,6 +686,16 @@ export const InpaintControls: FC<ControlsProps> = ({
                             Customize the negative text prompt here
                         </small>
                     </div>
+                    {/* loras */}
+                    <div className="form-group">
+                        <label htmlFor="loras">Loras</label>
+                        {selectedLoras.map(lora => (
+                            <SelectedLoraTag key={`selected-lora-${lora}`} lora={lora} onRemove={(lora) => setSelectedLoras(selectedLoras => selectedLoras.filter(selectedLora => selectedLora.name !== lora.name))} />
+                        ))}
+                        <button style={{marginTop: "8px"}} className="btn btn-primary btn-sm form-control" onClick={() => setSelectingLoras(true)}>
+                            <i className="fas fa-plus" />&nbsp;Add
+                        </button>
+                    </div>
                     {/* if we have reference images, allow the user to set the strength */}
                     {hasReferenceImages && (
                         <div className="form-group">
@@ -795,7 +816,8 @@ export const InpaintControls: FC<ControlsProps> = ({
                             tool.updateArgs({
                                 prompt,
                                 negativePrompt,
-                                referenceImagesWeight
+                                referenceImagesWeight,
+                                selectedLoras: JSON.parse(JSON.stringify(selectedLoras)),
                             });
                             tool.submit();
                         }}
@@ -805,6 +827,15 @@ export const InpaintControls: FC<ControlsProps> = ({
                     </button>
                 )}
             </div>
+            {selectingLoras && <LoraSelector
+                loras={loras}
+                onClose={() => setSelectingLoras(false)}
+                onSelect={(selected) => {
+                    setSelectedLoras(selectedLoras => [...selectedLoras, selected]);
+                    setSelectingLoras(false);
+                }}
+                selectedLoras={selectedLoras.map(lora => lora.name)}
+            />}
         </div>
     );
 };

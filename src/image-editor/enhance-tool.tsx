@@ -576,7 +576,6 @@ export const EnhanceControls: FC<ControlsProps> = ({
     const [selectingLoras, setSelectingLoras] = useState(false);
 
     const hasReferenceImages = renderer.referencImageCount() > 0;
-    console.log("selectedLoras", selectedLoras);
 
 
     tool.onChangeState(setState);
