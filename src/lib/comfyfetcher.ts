@@ -1,3 +1,4 @@
+import { ComfyObjectInfo } from "./objectinfo";
 
 export class ComfyFetcher {
     private url: string;
@@ -18,9 +19,10 @@ export class ComfyFetcher {
         });
     }
 
-    async fetch_object_info(): Promise<any> {
+    async fetch_object_info(): Promise<ComfyObjectInfo> {
         const response = await fetch(`${this.url}/object_info`);
         const json = await response.json();
+        console.log("object info", json);
         return json;
     }
 }

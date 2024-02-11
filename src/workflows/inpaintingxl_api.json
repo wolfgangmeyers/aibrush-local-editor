@@ -141,7 +141,7 @@
   "21": {
     "inputs": {
       "samples": [
-        "15",
+        "3",
         0
       ],
       "mask": [
@@ -321,7 +321,7 @@
       "cfg": 2,
       "sampler_name": "lcm",
       "scheduler": "sgm_uniform",
-      "denoise": 0.35000000000000003,
+      "denoise": 0.65,
       "model": [
         "4",
         0
@@ -335,7 +335,7 @@
         0
       ],
       "latent_image": [
-        "3",
+        "21",
         0
       ]
     },

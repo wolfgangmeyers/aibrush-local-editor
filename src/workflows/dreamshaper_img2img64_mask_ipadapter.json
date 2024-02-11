@@ -528,7 +528,7 @@
           "shape": 3
         }
       ],
-      "title": "load_lora_1",
+      "title": "load_turbo_lora",
       "properties": {
         "Node name for S&R": "LoraLoader"
       },

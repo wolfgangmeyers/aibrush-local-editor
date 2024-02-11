@@ -65,6 +65,7 @@ export class EnhanceTool extends BaseTool implements Tool {
     private savedEncodedMask?: string;
     private referenceImagesWeight = 1;
     private selectedLoras: SelectedLora[] = [];
+    private selectedModel: string = "dreamshaperXL_turboDpmppSDE.safetensors";
 
     set dirty(dirty: boolean) {
         this._dirty = dirty;
@@ -311,6 +312,7 @@ export class EnhanceTool extends BaseTool implements Tool {
         this.variationStrength = args.variationStrength || 0.75;
         this.referenceImagesWeight = args.referenceImagesWeight || 1;
         this.selectedLoras = JSON.parse(JSON.stringify(args.selectedLoras || []));
+        this.selectedModel = args.selectedModel || "dreamshaperXL_turboDpmppSDE.safetensors";
     }
 
     onChangeState(handler: (state: EnhanceToolState) => void) {
@@ -471,6 +473,9 @@ export class EnhanceTool extends BaseTool implements Tool {
         }
         workflow.set_seed(Math.floor(Math.random() * 1000000000));
         workflow.set_denoise(this.variationStrength);
+        workflow.set_selected_model(this.selectedModel);
+
+        console.log("workflow", workflow);
 
         this.state = "processing";
         let imageUrl: string;
@@ -572,8 +577,10 @@ export const EnhanceControls: FC<ControlsProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [referenceImagesWeight, setReferenceImagesWeight] = useCache("reference-images-weight", 1);
     const [loras, setLoras] = useState<string[]>([]);
+    const [models, setModels] = useState<string[]>([]);
     const [selectedLoras, setSelectedLoras] = useCache<SelectedLora[]>("selected-loras", []);
     const [selectingLoras, setSelectingLoras] = useState(false);
+    const [selectedModel, setSelectedModel] = useCache("selected-model", "dreamshaperXL_turboDpmppSDE.safetensors");
 
     const hasReferenceImages = renderer.referencImageCount() > 0;
 
@@ -586,6 +593,7 @@ export const EnhanceControls: FC<ControlsProps> = ({
     useEffect(() => {
         fetcher.fetch_object_info().then(objectInfo => {
             setLoras(objectInfo.LoraLoader.input.required.lora_name[0]);
+            setModels(objectInfo.CheckpointLoaderSimple.input.required.ckpt_name[0]);
         })
     }, []);
 
@@ -716,6 +724,23 @@ export const EnhanceControls: FC<ControlsProps> = ({
                             <i className="fas fa-plus" />&nbsp;Add
                         </button>
                     </div>
+                    {/* model */}
+                    <div className="form-group">
+                        {/* dropdown */}
+                        <label htmlFor="model">Model</label>
+                        <select
+                            className="form-control"
+                            id="model"
+                            value={selectedModel}
+                            onChange={(e) => setSelectedModel(e.target.value)}
+                        >
+                            {models.map((model) => (
+                                <option key={model} value={model}>
+                                    {model}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     {/* if we have reference images, allow the user to set the strength */}
                     {hasReferenceImages && (
                         <div className="form-group">
@@ -820,6 +845,7 @@ export const EnhanceControls: FC<ControlsProps> = ({
                                     negativePrompt,
                                     referenceImagesWeight,
                                     selectedLoras: JSON.parse(JSON.stringify(selectedLoras)),
+                                    selectedModel,
                                 });
                                 tool.submit();
                             }}
@@ -853,6 +879,7 @@ export const EnhanceControls: FC<ControlsProps> = ({
                                     negativePrompt,
                                     referenceImagesWeight,
                                     selectedLoras: JSON.parse(JSON.stringify(selectedLoras)),
+                                    selectedModel,
                                 });
                                 tool.submit();
                             }}

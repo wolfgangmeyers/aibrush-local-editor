@@ -84,6 +84,10 @@ export class Img2Img {
         this.node("apply_ipadapter").inputs.weight = weight;
     }
 
+    set_selected_model(model: string) {
+        this.node("load_sdxl_checkpoint").inputs.ckpt_name = model;
+    }
+
     set_reference_images(encodedImages: string[]) {
         // reverse the order of the encoded images so that the first image provided
         // has the highest weight
@@ -153,38 +157,26 @@ export class Img2Img {
     set_selected_loras(selected_loras: SelectedLora[]) {
         let loras = JSON.parse(JSON.stringify(selected_loras));
         if (selected_loras.length > 0) {
-            const inpaintingWorkflow = !!this.node("vae_incode_inpainting");
+            let loraNumber = 0;
             let lora = loras.pop();
-            this.node("load_lora_1").inputs.lora_name = lora?.name;
-            this.node("load_lora_1").inputs.strength_model = lora?.strength;
-            this.node("load_lora_1").inputs.strength_clip = lora?.strength;
-            this.node("load_lora_1").inputs.model = JSON.parse(JSON.stringify(
+
+            const loraNodeName = `load_lora_${loraNumber}`;
+            this.clone("load_turbo_lora", loraNodeName);
+            this.node(loraNodeName).inputs.lora_name = lora?.name;
+            this.node(loraNodeName).inputs.strength_model = lora?.strength;
+            this.node(loraNodeName).inputs.strength_clip = lora?.strength;
+            this.node(loraNodeName).inputs.model = JSON.parse(JSON.stringify(
                 this.node("sampler").inputs.model
             ));
-            this.node("load_lora_1").inputs.clip = [
+            this.node(loraNodeName).inputs.clip = [
                 this.id("load_sdxl_checkpoint"),
                 1
             ];
             this.node("sampler").inputs.model = [
-                this.id("load_lora_1"),
+                this.id(loraNodeName),
                 0
             ];
-            // TODO: add the rest of the loras to the list
-            // keep a counter, or change the prefix of the load lora nodes so we can
-            // create a second set in the case this is an inpainting workflow.
-
-            if (inpaintingWorkflow) {
-                // TODO: copy the list again and add the loras to the refiner sampler
-                // inpainting workflow: insert loras between the refiner sampler and its current model input
-                let load_lora_node = this.clone("load_lora_1", "load_lora_2");
-                load_lora_node.inputs.model = JSON.parse(JSON.stringify(
-                    this.node("refiner_sampler").inputs.model
-                ));
-                this.node("refiner_sampler").inputs.model = [
-                    this.id("load_lora_2"),
-                    0
-                ];
-            }
+            loraNumber++;
         }
     }
 

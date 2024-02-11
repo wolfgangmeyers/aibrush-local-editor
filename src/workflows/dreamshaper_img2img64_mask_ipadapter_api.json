@@ -8,7 +8,7 @@
       "scheduler": "sgm_uniform",
       "denoise": 0.65,
       "model": [
-        "4",
+        "29",
         0
       ],
       "positive": [
@@ -53,7 +53,7 @@
     "inputs": {
       "text": "a painting of an ethereal mushroom dream world by lisa frank, surreal, highly detailed digital art, sharp focus, unreal engine, volumetric lighting, raytracing",
       "clip": [
-        "4",
+        "29",
         1
       ]
     },
@@ -66,7 +66,7 @@
     "inputs": {
       "text": "low quality, distorted, deformed, dull, boring, plain, ugly, noise",
       "clip": [
-        "4",
+        "29",
         1
       ]
     },
@@ -223,7 +223,7 @@
     },
     "class_type": "LoraLoader",
     "_meta": {
-      "title": "load_lora_1"
+      "title": "load_turbo_lora"
     }
   },
   "27": {
@@ -249,6 +249,25 @@
     "class_type": "ImageBatch",
     "_meta": {
       "title": "batch_reference_images_1"
+    }
+  },
+  "29": {
+    "inputs": {
+      "lora_name": "LCMTurboMix_Euler_A_fix.safetensors",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "load_turbo_lora"
     }
   }
 }

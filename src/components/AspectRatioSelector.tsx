@@ -1,6 +1,6 @@
-import React, { FC, useEffect, useRef, useState } from "react";
+import { FC } from "react";
 
-import { aspectRatios, DEFAULT_ASPECT_RATIO, getClosestAspectRatio } from "../lib/aspecRatios";
+import { aspectRatios } from "../lib/aspecRatios";
 
 interface Props {
     aspectRatio: number;
@@ -30,9 +30,9 @@ export const AspectRatioSelector: FC<Props> = ({ aspectRatio, onChange, disabled
                     }}
                 ></div>
             </div>
-            <label style={{width: "100%"}}>
+            <label style={{ width: "100%" }}>
                 Aspect Ratio
-                <small className="form-text text-muted" style={{float: "right"}}>
+                <small className="form-text text-muted" style={{ float: "right" }}>
                     {aspectRatioDetails.displayName}
                 </small>
             </label>
