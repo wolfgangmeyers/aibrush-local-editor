@@ -27,4 +27,4 @@ export class ComfyFetcher {
     }
 }
 
-export const fetcher = new ComfyFetcher("http://localhost:8188");
+// export const fetcher = new ComfyFetcher("http://localhost:8188");

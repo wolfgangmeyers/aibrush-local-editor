@@ -19,7 +19,7 @@ import { Img2Img } from "../lib/workflows";
 // import img2imgmask from "../workflows/dreamshaper_img2img64_mask_api.json";
 import img2imgmaskipadapter from "../workflows/dreamshaper_img2img64_mask_ipadapter_api.json";
 import { useCache } from "../lib/cache";
-import { fetcher } from "../lib/comfyfetcher";
+import { ComfyFetcher } from "../lib/comfyfetcher";
 import { LoraSelector } from "../components/LoraSelector";
 import { SelectedLora } from "../lib/loras";
 import { SelectedLoraTag } from "../components/SelectedLora";
@@ -591,6 +591,8 @@ export const EnhanceControls: FC<ControlsProps> = ({
     tool.onError(setError);
 
     useEffect(() => {
+        const backendHost = localStorage.getItem("backend-host") || "localhost:8188";
+        const fetcher = new ComfyFetcher(`http://${backendHost}`)
         fetcher.fetch_object_info().then(objectInfo => {
             setLoras(objectInfo.LoraLoader.input.required.lora_name[0]);
             setModels(objectInfo.CheckpointLoaderSimple.input.required.ckpt_name[0]);

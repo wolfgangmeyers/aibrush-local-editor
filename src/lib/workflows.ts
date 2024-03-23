@@ -2,7 +2,7 @@
 
 
 import { WebsocketHelper } from "./websocket";
-import { ComfyFetcher, fetcher } from "./comfyfetcher";
+import { ComfyFetcher } from "./comfyfetcher";
 import { SelectedLora } from "./loras";
 
 let defaultTransparentImage = "";
@@ -43,17 +43,19 @@ function getIds(workflow: any): any {
 export class Img2Img {
     private client_id: string;
     private websocket_helper: WebsocketHelper;
-    // private comfy_fetcher: ComfyFetcher;
     private workflow: any;
+    private comfy_fetcher: ComfyFetcher;
 
     private ids: any;
+    private backendHost: string;
 
     constructor(workflowJSON: any) {
+        this.backendHost = localStorage.getItem("backend-host") || "localhost:8188";
         this.workflow = JSON.parse(JSON.stringify(workflowJSON));
         this.client_id = Math.random().toString();
         this.ids = getIds(this.workflow);
-        this.websocket_helper = new WebsocketHelper("ws://127.0.0.1:8188/ws?clientId=" + this.client_id);
-        // this.comfy_fetcher = new ComfyFetcher("http://127.0.0.1:8188")
+        this.websocket_helper = new WebsocketHelper(`ws://${this.backendHost}/ws?clientId=${this.client_id}`);
+        this.comfy_fetcher = new ComfyFetcher(`http://${this.backendHost}`)
     }
 
     private node(title: string): any {
@@ -196,7 +198,7 @@ export class Img2Img {
                 "client_id": this.client_id
             };
             const data = JSON.stringify(p);
-            const req = new Request("http://127.0.0.1:8188/prompt", {
+            const req = new Request(`http://${this.backendHost}/prompt`, {
                 method: "POST",
                 body: data
             });
@@ -209,7 +211,7 @@ export class Img2Img {
                     // wait for the prompt to complete
                     const handle_websocket_completion = async (output: any) => {
                         // get the image
-                        const dataUrl = await fetcher.fetch_image(output["images"][0]["filename"]);
+                        const dataUrl = await this.comfy_fetcher.fetch_image(output["images"][0]["filename"]);
                         // call the callback with the image
                         resolve(dataUrl);
                     };

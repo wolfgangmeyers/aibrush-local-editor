@@ -15,6 +15,7 @@ import { ImportExportControls } from "./import-export";
 import { BusyModal } from "../components/BusyModal";
 import { InpaintControls, InpaintTool } from "./inpaint-tool";
 import { ReferenceImagesControls } from "./reference-images";
+import BackendSelector from "../components/BackendSelector";
 
 interface CanPreventDefault {
     preventDefault: () => void;
@@ -265,6 +266,7 @@ export const ImageEditor = () => {
                         <>
                             <div style={{ marginBottom: "16px" }}>
                                 {tools.map((t) => renderTool(t))}
+                                <BackendSelector />
                             </div>
                             {tool && toolConfig && (
                                 <>
