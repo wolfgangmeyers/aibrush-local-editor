@@ -16,6 +16,7 @@ import { BusyModal } from "../components/BusyModal";
 import { InpaintControls, InpaintTool } from "./inpaint-tool";
 import { ReferenceImagesControls } from "./reference-images";
 import BackendSelector from "../components/BackendSelector";
+import { AugmentControls } from "./augment-tool";
 
 interface CanPreventDefault {
     preventDefault: () => void;
@@ -101,6 +102,22 @@ export const ImageEditor = () => {
                     />
                 );
             },
+        },
+        {
+            name: "upscale",
+            iconClass: "fas fa-arrows-alt",
+            constructor: (r: Renderer) => new BaseTool(r, "upscale"),
+            defaultArgs: {},
+            renderControls: (t: Tool, renderer: Renderer) => {
+                return (
+                    <AugmentControls 
+                        renderer={renderer}
+                        tool={t as BaseTool}
+                        key={"upscale-controls"}
+                    />
+                );
+            },
+            
         },
         {
             name: "reference images",

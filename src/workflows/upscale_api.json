@@ -1,0 +1,49 @@
+{
+  "25": {
+    "inputs": {
+      "upscale_model": [
+        "26",
+        0
+      ],
+      "image": [
+        "28",
+        0
+      ]
+    },
+    "class_type": "ImageUpscaleWithModel",
+    "_meta": {
+      "title": "Upscale Image (using Model)"
+    }
+  },
+  "26": {
+    "inputs": {
+      "model_name": "RealESRGAN_x4plus_anime_6B.pth"
+    },
+    "class_type": "UpscaleModelLoader",
+    "_meta": {
+      "title": "Load Upscale Model"
+    }
+  },
+  "27": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "25",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "28": {
+    "inputs": {
+      "image": ""
+    },
+    "class_type": "ETN_LoadImageBase64",
+    "_meta": {
+      "title": "load_source_image"
+    }
+  }
+}
