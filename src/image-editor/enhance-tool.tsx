@@ -363,9 +363,9 @@ export class EnhanceTool extends BaseTool implements Tool {
         );
         if (maskData) {
             applyAlphaMask(imageData, maskData, true);
-        } else {
-            featherEdges(selectionOverlay, this.renderer.getWidth(), this.renderer.getHeight(), imageData);
-        }
+        } 
+        featherEdges(selectionOverlay, this.renderer.getWidth(), this.renderer.getHeight(), imageData);
+        
 
         return imageData;
     }
