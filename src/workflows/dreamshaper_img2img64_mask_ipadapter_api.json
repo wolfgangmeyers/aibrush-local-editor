@@ -211,21 +211,6 @@
       "title": "load_reference_image_1"
     }
   },
-  "26": {
-    "inputs": {
-      "lora_name": "InkpunkXL_civit_16.safetensors",
-      "strength_model": 1,
-      "strength_clip": 1,
-      "model": [
-        "4",
-        0
-      ]
-    },
-    "class_type": "LoraLoader",
-    "_meta": {
-      "title": "load_turbo_lora"
-    }
-  },
   "27": {
     "inputs": {
       "image": "image"

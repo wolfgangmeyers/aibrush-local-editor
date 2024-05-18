@@ -74,6 +74,17 @@ export class Img2Img {
         return result;
     }
 
+    disable_accelerator() {
+        // load_sdxl_checkpoint
+        this.node("sampler").inputs.model = [
+            this.id("load_sdxl_checkpoint"),
+            0
+        ];
+        this.node("sampler").inputs.steps = 50;
+        this.node("sampler").inputs.cfg = 7;
+        this.node("sampler").sampler_name = "k_euler";
+    }
+
     set_seed(seed: number) {
         this.node("sampler").inputs.seed = seed;
     }

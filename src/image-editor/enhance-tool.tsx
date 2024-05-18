@@ -48,6 +48,7 @@ export class EnhanceTool extends BaseTool implements Tool {
     private _dirty = false;
     private worker: ImageUtilWorker;
     private idCounter = 0;
+    private accelerator = true;
 
     private _state: EnhanceToolState = "default";
     private stateHandler: (state: EnhanceToolState) => void = () => { };
@@ -313,6 +314,7 @@ export class EnhanceTool extends BaseTool implements Tool {
         this.referenceImagesWeight = args.referenceImagesWeight || 1;
         this.selectedLoras = JSON.parse(JSON.stringify(args.selectedLoras || []));
         this.selectedModel = args.selectedModel || "dreamshaperXL_turboDpmppSDE.safetensors";
+        this.accelerator = args.accelerator === undefined || args.accelerator;
     }
 
     onChangeState(handler: (state: EnhanceToolState) => void) {
@@ -474,6 +476,10 @@ export class EnhanceTool extends BaseTool implements Tool {
         workflow.set_seed(Math.floor(Math.random() * 1000000000));
         workflow.set_denoise(this.variationStrength);
         workflow.set_selected_model(this.selectedModel);
+        // debugger;
+        if (!this.accelerator) {
+            workflow.disable_accelerator();
+        }
 
         console.log("workflow", workflow);
 
@@ -581,6 +587,7 @@ export const EnhanceControls: FC<ControlsProps> = ({
     const [selectedLoras, setSelectedLoras] = useCache<SelectedLora[]>("selected-loras", []);
     const [selectingLoras, setSelectingLoras] = useState(false);
     const [selectedModel, setSelectedModel] = useCache("selected-model", "dreamshaperXL_turboDpmppSDE.safetensors");
+    const [accelerator, setAccelerator] = useCache("accelerator", true);
 
     const hasReferenceImages = renderer.referencImageCount() > 0;
 
@@ -743,6 +750,18 @@ export const EnhanceControls: FC<ControlsProps> = ({
                             ))}
                         </select>
                     </div>
+                    {/* accelerator checkbox */}
+                    <div className="form-group">
+                        <label htmlFor="accelerator">Accelerator</label>
+                        <div className="form-check">
+                            <input
+                                type="checkbox"
+                                id="accelerator"
+                                checked={accelerator}
+                                onChange={(e) => setAccelerator(e.target.checked)}
+                            />
+                        </div>
+                    </div>
                     {/* if we have reference images, allow the user to set the strength */}
                     {hasReferenceImages && (
                         <div className="form-group">
@@ -848,6 +867,7 @@ export const EnhanceControls: FC<ControlsProps> = ({
                                     referenceImagesWeight,
                                     selectedLoras: JSON.parse(JSON.stringify(selectedLoras)),
                                     selectedModel,
+                                    accelerator,
                                 });
                                 tool.submit();
                             }}
@@ -882,6 +902,7 @@ export const EnhanceControls: FC<ControlsProps> = ({
                                     referenceImagesWeight,
                                     selectedLoras: JSON.parse(JSON.stringify(selectedLoras)),
                                     selectedModel,
+                                    accelerator,
                                 });
                                 tool.submit();
                             }}
