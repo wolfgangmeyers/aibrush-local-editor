@@ -18,6 +18,8 @@ import { Img2Img } from "../lib/workflows";
 // import img2img from "../workflows/dreamshaper_img2img64_api.json";
 // import img2imgmask from "../workflows/dreamshaper_img2img64_mask_api.json";
 import img2imgmaskipadapter from "../workflows/dreamshaper_img2img64_mask_ipadapter_api.json";
+import img2imgmaskpixart from "../workflows/pixart-sigma-img2img-mask-api.json";
+
 import { useCache } from "../lib/cache";
 import { ComfyFetcher } from "../lib/comfyfetcher";
 import { LoraSelector } from "../components/LoraSelector";
@@ -465,7 +467,14 @@ export class EnhanceTool extends BaseTool implements Tool {
         }
         let workflow: Img2Img;
         const referenceImages = this.renderer.getEncodedReferenceImages();
-        workflow = new Img2Img(img2imgmaskipadapter);
+        let workflowJSON: any;
+        if (this.selectedModel.toLowerCase().includes("pixart")) {
+            workflowJSON = img2imgmaskpixart;
+        } else {
+            workflowJSON = img2imgmaskipadapter;
+        }
+        // debugger;
+        workflow = new Img2Img(workflowJSON);
         if (referenceImages.length > 0) {
             workflow.set_reference_images(referenceImages);
             workflow.set_reference_images_weight(this.referenceImagesWeight);

@@ -74,7 +74,19 @@ export class Img2Img {
         return result;
     }
 
+    private isPixart(): boolean {
+        // load_pixart_checkpoint
+        if (this.node("load_pixart_checkpoint")) {
+            return true;
+        }
+        return false;
+    }
+
     disable_accelerator() {
+        // no-op for pixart
+        if (this.isPixart()) {
+            return;
+        }
         // load_sdxl_checkpoint
         this.node("sampler").inputs.model = [
             this.id("load_sdxl_checkpoint"),
@@ -94,14 +106,26 @@ export class Img2Img {
     }
 
     set_reference_images_weight(weight: number) {
+        // no-op for pixart
+        if (this.isPixart()) {
+            return;
+        }
         this.node("apply_ipadapter").inputs.weight = weight;
     }
 
     set_selected_model(model: string) {
+        // no-op for pixart
+        if (this.isPixart()) {
+            return;
+        }
         this.node("load_sdxl_checkpoint").inputs.ckpt_name = model;
     }
 
     set_reference_images(encodedImages: string[]) {
+        // no-op for pixart
+        if (this.isPixart()) {
+            return;
+        }
         // reverse the order of the encoded images so that the first image provided
         // has the highest weight
         encodedImages.reverse();
@@ -168,6 +192,10 @@ export class Img2Img {
     }
 
     set_selected_loras(selected_loras: SelectedLora[]) {
+        // no-op for pixart
+        if (this.isPixart()) {
+            return;
+        }
         let loras = JSON.parse(JSON.stringify(selected_loras));
         if (selected_loras.length > 0) {
             let loraNumber = 0;

@@ -1,0 +1,196 @@
+{
+  "3": {
+    "inputs": {
+      "vae_name": "taesdxl"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "6": {
+    "inputs": {
+      "width": [
+        "128",
+        0
+      ],
+      "height": [
+        "128",
+        1
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "empty_image"
+    }
+  },
+  "20": {
+    "inputs": {
+      "ckpt_name": "PixArt-Sigma-XL-2-1024-MS.pth",
+      "model": "PixArtMS_Sigma_XL_2"
+    },
+    "class_type": "PixArtCheckpointLoader",
+    "_meta": {
+      "title": "load_pixart_checkpoint"
+    }
+  },
+  "65": {
+    "inputs": {
+      "samples": [
+        "155",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "66": {
+    "inputs": {
+      "filename_prefix": "ComfyUI_PixArt",
+      "images": [
+        "65",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "113": {
+    "inputs": {
+      "text": "An ultra detailed, high quality digital painting. Create a high-resolution illustration of a modern-day witch enjoying a Starbucks beverage. The witch should have a contemporary yet magical appearance, with a stylish witch hat that features subtle mystical symbols or decorations. She can be dressed in a casual, chic outfit with a touch of witchy flair, such as a flowing cloak, patterned leggings, or a top with celestial motifs like stars and moons.\n\nThe witch is holding a Starbucks cup with the iconic green logo, sipping contentedly as she sits or stands in a cozy, enchanted setting. Consider adding details like the cup being adorned with magical symbols or a spellbook casually placed nearby. The setting could include elements like a broomstick leaning against a chair, a black cat curled up by her feet, and candles or crystal balls adding to the magical atmosphere.\n\nThe background should evoke a warm and inviting space, perhaps a mystical café or a charming nook in a forest or magical garden. Incorporate soft, ambient lighting to create a cozy, enchanted mood, and use a color palette that blends earthy tones with pops of vibrant colors, enhancing the whimsical yet contemporary vibe of the scene.",
+      "T5": [
+        "144",
+        0
+      ]
+    },
+    "class_type": "T5TextEncode",
+    "_meta": {
+      "title": "positive_prompt"
+    }
+  },
+  "125": {
+    "inputs": {
+      "text": "photo, depth of field",
+      "T5": [
+        "144",
+        0
+      ]
+    },
+    "class_type": "T5TextEncode",
+    "_meta": {
+      "title": "negative_prompt"
+    }
+  },
+  "128": {
+    "inputs": {
+      "model": "PixArtMS_Sigma_XL_2",
+      "ratio": "1.00"
+    },
+    "class_type": "PixArtResolutionSelect",
+    "_meta": {
+      "title": "PixArt Resolution Select"
+    }
+  },
+  "144": {
+    "inputs": {
+      "t5v11_name": "model-00001-of-00002.safetensors",
+      "t5v11_ver": "xxl",
+      "path_type": "folder",
+      "device": "cpu",
+      "dtype": "default"
+    },
+    "class_type": "T5v11Loader",
+    "_meta": {
+      "title": "T5v1.1 Loader"
+    }
+  },
+  "155": {
+    "inputs": {
+      "seed": 172,
+      "steps": 20,
+      "cfg": 5.5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 0.35000000000000003,
+      "model": [
+        "20",
+        0
+      ],
+      "positive": [
+        "113",
+        0
+      ],
+      "negative": [
+        "125",
+        0
+      ],
+      "latent_image": [
+        "160",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "sampler"
+    }
+  },
+  "159": {
+    "inputs": {
+      "pixels": [
+        "161",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "160": {
+    "inputs": {
+      "samples": [
+        "159",
+        0
+      ],
+      "mask": [
+        "162",
+        1
+      ]
+    },
+    "class_type": "SetLatentNoiseMask",
+    "_meta": {
+      "title": "Set Latent Noise Mask"
+    }
+  },
+  "161": {
+    "inputs": {
+      "image": ""
+    },
+    "class_type": "ETN_LoadImageBase64",
+    "_meta": {
+      "title": "load_source_image"
+    }
+  },
+  "162": {
+    "inputs": {
+      "image": ""
+    },
+    "class_type": "ETN_LoadImageBase64",
+    "_meta": {
+      "title": "load_mask"
+    }
+  }
+}
