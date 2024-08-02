@@ -106,7 +106,7 @@ export class Img2Img {
 
     set_seed(seed: number) {
         if (this.isFlux()) {
-            this.node("noise").inputs.seed = seed;
+            this.node("noise").inputs.noise_seed = seed;
         } else {
             this.node("sampler").inputs.seed = seed;
         }
