@@ -18,6 +18,9 @@ Unzip that on your system and edit the `run_nvidia_gpu.bat` file as follows:
 - Download the VIT-H clipvision model from https://huggingface.co/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors, rename to `ipadapter_clipvision_vith`, and place in `ComfyUI/models/clip_vision` folder.
 - Download the SDXL IPAdapter model from https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/ip-adapter-plus_sdxl_vit-h.safetensors and place in `ComfyUI/models/ipadapter` folder.
 
+## Flux Support
+Follow instructions at https://comfyanonymous.github.io/ComfyUI_examples/flux/ to get flux working.
+
 ## Custom Nodes
 
 - Navigate to the `ComfyUI/custom_nodes` folder.
