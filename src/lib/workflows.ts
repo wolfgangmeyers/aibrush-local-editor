@@ -82,9 +82,16 @@ export class Img2Img {
         return false;
     }
 
+    private isFlux(): boolean {
+        if (this.node("load_flux_model")) {
+            return true;
+        }
+        return false;
+    }
+
     disable_accelerator() {
         // no-op for pixart
-        if (this.isPixart()) {
+        if (this.isPixart() || this.isFlux()) {
             return;
         }
         // load_sdxl_checkpoint
@@ -98,22 +105,39 @@ export class Img2Img {
     }
 
     set_seed(seed: number) {
-        this.node("sampler").inputs.seed = seed;
+        if (this.isFlux()) {
+            this.node("noise").inputs.seed = seed;
+        } else {
+            this.node("sampler").inputs.seed = seed;
+        }
     }
 
     set_denoise(denoise: number) {
-        this.node("sampler").inputs.denoise = denoise;
+        if (this.isFlux()) {
+            this.node("scheduler").inputs.denoise = denoise;
+        } else {
+            this.node("sampler").inputs.denoise = denoise;
+        }
     }
 
     set_reference_images_weight(weight: number) {
         // no-op for pixart
-        if (this.isPixart()) {
+        if (this.isPixart() || this.isFlux()) {
             return;
         }
         this.node("apply_ipadapter").inputs.weight = weight;
     }
 
     set_selected_model(model: string) {
+        if (this.isFlux()) {
+            this.node("load_flux_model").inputs.unet_name = model;
+            if (model === "flux1-schnell.sft") {
+                this.node("scheduler").inputs.steps = 4;
+            } else {
+                this.node("scheduler").inputs.steps = 20;
+            }
+            return;
+        }
         // no-op for pixart
         if (this.isPixart()) {
             return;
@@ -225,7 +249,9 @@ export class Img2Img {
         return new Promise((resolve) => {
             console.log("running...", JSON.stringify(this.workflow, null, 2));
             this.node("positive_prompt").inputs.text = prompt;
-            this.node("negative_prompt").inputs.text = negativePrompt;
+            if (!this.isFlux()) {
+                this.node("negative_prompt").inputs.text = negativePrompt;
+            }
             this.node("load_source_image").inputs.image = encoded_image;
             if (encoded_mask) {
                 this.node("load_mask").inputs.image = encoded_mask;

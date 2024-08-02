@@ -34,7 +34,7 @@ export class WebsocketHelper {
             if (this.waiting) {
                 ws.close();
             }
-        }, 120000);
+        }, 240000);
     }
 
     public waitForCompletion(promptId: string, onCompletion: (output: string) => void, onProgress?: (progress: number) => void) {

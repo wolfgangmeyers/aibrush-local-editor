@@ -19,6 +19,7 @@ import { Img2Img } from "../lib/workflows";
 // import img2imgmask from "../workflows/dreamshaper_img2img64_mask_api.json";
 import img2imgmaskipadapter from "../workflows/dreamshaper_img2img64_mask_ipadapter_api.json";
 import img2imgmaskpixart from "../workflows/pixart-sigma-img2img-mask-api.json";
+import img2imgmaskflux from "../workflows/flux-dev-api.json";
 
 import { useCache } from "../lib/cache";
 import { ComfyFetcher } from "../lib/comfyfetcher";
@@ -470,6 +471,8 @@ export class EnhanceTool extends BaseTool implements Tool {
         let workflowJSON: any;
         if (this.selectedModel.toLowerCase().includes("pixart")) {
             workflowJSON = img2imgmaskpixart;
+        } else if (this.selectedModel.toLowerCase().includes("flux")) {
+            workflowJSON = img2imgmaskflux;
         } else {
             workflowJSON = img2imgmaskipadapter;
         }
@@ -611,7 +614,10 @@ export const EnhanceControls: FC<ControlsProps> = ({
         const fetcher = new ComfyFetcher(`http://${backendHost}`)
         fetcher.fetch_object_info().then(objectInfo => {
             setLoras(objectInfo.LoraLoader.input.required.lora_name[0]);
-            setModels(objectInfo.CheckpointLoaderSimple.input.required.ckpt_name[0]);
+            setModels([
+                ...objectInfo.CheckpointLoaderSimple.input.required.ckpt_name[0],
+                ...objectInfo.UNETLoader.input.required.unet_name[0]
+            ]);
         })
     }, []);
 
