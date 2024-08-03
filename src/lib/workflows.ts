@@ -131,7 +131,8 @@ export class Img2Img {
     set_selected_model(model: string) {
         if (this.isFlux()) {
             this.node("load_flux_model").inputs.unet_name = model;
-            if (model === "flux1-schnell.sft") {
+            // if (model === "flux1-schnell.sft") {
+            if (model.indexOf("flux1-schnell") !== -1) {
                 this.node("scheduler").inputs.steps = 4;
             } else {
                 this.node("scheduler").inputs.steps = 20;
