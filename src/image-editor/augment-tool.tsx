@@ -8,6 +8,7 @@ import {
     ImageUtilWorker,
     imageDataToCanvas,
     fixImageSize,
+    resizeImage,
 } from "../lib/imageutil";
 import moment from "moment";
 import { Alert } from "react-bootstrap";
@@ -25,7 +26,7 @@ interface Props {
 export const AugmentControls: FC<Props> = ({ renderer, tool }) => {
     const [backupImage, setBackupImage] = useState<string | undefined>();
     const [activeAugmentation, setActiveAugmentation] = useState<
-        "upscale" | "face_restore" | null
+        "upscale" | "face_restore" | "downscale" | null
     >(null);
     const [imageWorker, setImageWorker] = useState<
         ImageUtilWorker | undefined
@@ -105,6 +106,22 @@ export const AugmentControls: FC<Props> = ({ renderer, tool }) => {
             setActiveAugmentation(null);
         }
     };
+
+    const onDownscale = async () => {
+        const backupImage = renderer.getEncodedImage(null, "png");
+        setBackupImage(backupImage);
+        const newWidth = renderer.getWidth() / 2;
+        const newHeight = renderer.getHeight() / 2;
+        // just shrink the image by 2x and then set it back to the renderer
+        const imageData = renderer.getImageData(null);
+        if (!imageData) {
+            return;
+        }
+        let canvas = imageDataToCanvas(imageData);
+        canvas = resizeImage(canvas, newWidth, newHeight);
+        renderer.setBaseImage(canvas);
+        canvas.remove();
+    }
 
     if (activeAugmentation) {
         return (
@@ -186,6 +203,16 @@ export const AugmentControls: FC<Props> = ({ renderer, tool }) => {
                     <i className="fas fa-arrows-alt"></i>&nbsp; Upscale Image 2x
                 </button>
             </div>
+            {renderer.getWidth() >= 2048 && renderer.getHeight() >= 2048 && <div className="form-group" style={{ marginTop: "16px" }}>
+                <button
+                    className="btn btn-primary"
+                    onClick={() => {
+                        onDownscale();
+                    }}
+                >
+                    <i className="fas fa-compress-arrows-alt"></i>&nbsp; Downscale Image 2x
+                </button>
+            </div>}
         </>
     );
 };
