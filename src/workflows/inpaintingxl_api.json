@@ -253,7 +253,8 @@
   },
   "29": {
     "inputs": {
-      "unet_name": "sdxlInpainting01Official_v01-inpainting.safetensors"
+      "unet_name": "sdxlInpainting01Official_v01-inpainting.safetensors",
+      "weight_dtype": "default"
     },
     "class_type": "UNETLoader",
     "_meta": {
