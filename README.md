@@ -20,6 +20,7 @@ Unzip that on your system and edit the `run_nvidia_gpu.bat` file as follows:
 
 ## Flux Support
 Follow instructions at https://comfyanonymous.github.io/ComfyUI_examples/flux/ to get flux working.
+Use the smaller faster models here for a better experience: https://huggingface.co/Kijai/flux-fp8
 
 ## Custom Nodes
 
