@@ -26,13 +26,15 @@ interface Props {
 export const AugmentControls: FC<Props> = ({ renderer, tool }) => {
     const [backupImage, setBackupImage] = useState<string | undefined>();
     const [activeAugmentation, setActiveAugmentation] = useState<
-        "upscale" | "face_restore" | "downscale" | null
+        "upscale" | "face_restore" | "downscale" | "extend" | null
     >(null);
     const [imageWorker, setImageWorker] = useState<
         ImageUtilWorker | undefined
     >();
     const [error, setError] = useState<string | null>(null);
     const [progress, setProgress] = useState<number>(0);
+    const [extendWidth, setExtendWidth] = useState<number>(0);
+    const [extendHeight, setExtendHeight] = useState<number>(0);
 
     useEffect(() => {
         const imageWorker = new ImageUtilWorker();
@@ -123,6 +125,97 @@ export const AugmentControls: FC<Props> = ({ renderer, tool }) => {
         canvas.remove();
     }
 
+    const onExtend = () => {
+        setActiveAugmentation("extend");
+        setError(null);
+        const backupImage = renderer.getEncodedImage(null, "png");
+        setBackupImage(backupImage);
+        renderer.setSelectionOverlay({
+            x: 0,
+            y: 0,
+            width: renderer.getWidth(),
+            height: renderer.getHeight(),
+        });
+        setExtendWidth(renderer.getWidth());
+        setExtendHeight(renderer.getHeight());
+    };
+
+    const extendOverlay = (direction: "left" | "up" | "right" | "down") => {
+        const overlay = renderer.getSelectionOverlay();
+        if (!overlay) return;
+
+        switch (direction) {
+            case "left":
+                overlay.x -= 64;
+                overlay.width += 64;
+                break;
+            case "up":
+                overlay.y -= 64;
+                overlay.height += 64;
+                break;
+            case "right":
+                overlay.width += 64;
+                break;
+            case "down":
+                overlay.height += 64;
+                break;
+        }
+        renderer.setSelectionOverlay(overlay);
+        setExtendWidth(overlay.width);
+        setExtendHeight(overlay.height);
+    };
+
+    const onConfirmExtend = () => {
+        try {
+            renderer.expandToOverlay();
+            setActiveAugmentation(null);
+        } catch (err: any) {
+            const errMessage = err.response?.data?.message || err.message || "Extension failed";
+            setError(errMessage);
+        }
+    };
+
+    const onCancelExtend = () => {
+        setActiveAugmentation(null);
+        renderer.setSelectionOverlay(undefined);
+        setBackupImage(undefined);
+    };
+
+    const overlay = renderer.getSelectionOverlay();
+
+    if (activeAugmentation === "extend") {
+        return (
+            <div className="form-group" style={{ marginTop: "16px" }}>
+                <div style={{ marginTop: "16px" }}>
+                    <button className="btn btn-primary" onClick={() => extendOverlay("left")}>
+                        Extend Left
+                    </button>
+                    <button className="btn btn-primary" onClick={() => extendOverlay("up")} style={{ marginLeft: "8px" }}>
+                        Extend Up
+                    </button>
+                    <button className="btn btn-primary" onClick={() => extendOverlay("right")} style={{ marginLeft: "8px" }}>
+                        Extend Right
+                    </button>
+                    <button className="btn btn-primary" onClick={() => extendOverlay("down")} style={{ marginLeft: "8px" }}>
+                        Extend Down
+                    </button>
+                </div>
+                {/* show current resolution of the image (overlay) */}
+                {overlay && <div style={{ marginTop: "16px" }}>
+                    Current Resolution: {extendWidth} x {extendHeight}
+                </div>}
+                <div style={{ marginTop: "16px" }}>
+                    <button className="btn btn-primary" onClick={onConfirmExtend}>
+                        Confirm
+                    </button>
+                    <button className="btn btn-secondary" onClick={onCancelExtend} style={{ marginLeft: "8px" }}>
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (activeAugmentation) {
         return (
             <div className="form-group" style={{ marginTop: "16px" }}>
@@ -201,6 +294,16 @@ export const AugmentControls: FC<Props> = ({ renderer, tool }) => {
                 >
                     {/* upscale icon */}
                     <i className="fas fa-arrows-alt"></i>&nbsp; Upscale Image 2x
+                </button>
+            </div>
+            <div className="form-group" style={{ marginTop: "16px" }}>
+                <button
+                    className="btn btn-primary"
+                    onClick={() => {
+                        onExtend();
+                    }}
+                >
+                    <i className="fas fa-expand"></i>&nbsp; Extend Image
                 </button>
             </div>
             {renderer.getWidth() >= 2048 && renderer.getHeight() >= 2048 && <div className="form-group" style={{ marginTop: "16px" }}>

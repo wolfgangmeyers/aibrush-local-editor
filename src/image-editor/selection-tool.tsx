@@ -8,6 +8,7 @@ import {
     aspectRatios,
     getClosestAspectRatio,
 } from "../lib/aspecRatios";
+import { useCache } from "../lib/cache";
 
 export class SelectionTool extends BaseTool implements Tool {
     private selectionOverlay: Rect | undefined;
@@ -127,7 +128,7 @@ export class SelectionTool extends BaseTool implements Tool {
                 );
             }
 
-            
+
             this.sync();
         }
     }
@@ -164,8 +165,6 @@ export class SelectionTool extends BaseTool implements Tool {
 interface ControlsProps {
     renderer: Renderer;
     tool: Tool;
-    /** Lock aspect ratio for smaller images */
-    lockAspectRatio?: boolean;
     outpaint?: boolean;
 }
 
@@ -175,34 +174,38 @@ export const Controls: React.FC<ControlsProps> = ({
     outpaint,
 }) => {
     const [aspectRatio, setAspectRatio] = useState(DEFAULT_ASPECT_RATIO);
-    const [size, setSize] = useState(1);
+    const [size, setSize] = useCache("size", 1);
+    const [focus, setFocus] = useCache("focus", false);
 
     useEffect(() => {
-       
-            const args = tool.getArgs();
-            if (args.selectionOverlay) {
-                // restore args
-                const aspectRatio = getClosestAspectRatio(
-                    args.selectionOverlay.width,
-                    args.selectionOverlay.height
-                );
-                setAspectRatio(aspectRatio.id);
-                setSize(args.selectionOverlay.width / aspectRatio.width);
-                tool.updateArgs(args);
-            } else {
-                // set default args
-                args.selectionOverlay = {
-                    x: 0,
-                    y: 0,
-                    width: aspectRatios[aspectRatio].width,
-                    height: aspectRatios[aspectRatio].height,
-                };
-                args.outpaint = outpaint;
-                tool.updateArgs(args);
-            }
+
+        const args = tool.getArgs();
+        if (args.selectionOverlay) {
+            // restore args
+            const aspectRatio = getClosestAspectRatio(
+                args.selectionOverlay.width,
+                args.selectionOverlay.height
+            );
+            setAspectRatio(aspectRatio.id);
+            setSize(args.selectionOverlay.width / aspectRatio.width);
+            tool.updateArgs(args);
+        } else {
+            // set default args
+            args.selectionOverlay = {
+                x: 0,
+                y: 0,
+                width: aspectRatios[aspectRatio].width,
+                height: aspectRatios[aspectRatio].height,
+            };
+            args.outpaint = outpaint;
+            tool.updateArgs(args);
+        }
     }, [tool]);
 
-    function onChange(aspectRatioId: number, size: number) {
+    function onChange(aspectRatioId: number, size: number, focus: boolean) {
+        if (focus) {
+            size = 0.5;
+        }
         const args = tool.getArgs();
         const aspectRatio = aspectRatios[aspectRatioId];
         if (args.selectionOverlay) {
@@ -243,38 +246,61 @@ export const Controls: React.FC<ControlsProps> = ({
         });
     }
 
+    // function onChangeFocus(focus: boolean) {
+    //     setFocus(focus);
+    //     if (focus) {
+    //         setSize(0.5);
+    //     } else {
+    //         setSize(1);
+    //     }
+    // }
+
     return (
         <>
-            <AspectRatioSelector
-                aspectRatio={aspectRatio}
-                onChange={(aspectRatioId) => {
-                    onChange(aspectRatioId, 1);
-                    setAspectRatio(aspectRatioId);
-                }}
-            />
-            <div className="form-group">
-                <label htmlFor="size" style={{ width: "100%" }}>
-                    Size
-                    <small
-                        className="form-text text-muted"
-                        style={{ float: "right" }}
-                    >
-                        {Math.round(size * 100)}%
-                    </small>
-                </label>
-                <input
-                    type="range"
-                    className="form-control-range"
-                    id="size"
-                    min="1"
-                    max="2"
-                    step="0.1"
-                    value={size}
-                    onChange={(event) => {
-                        onChange(aspectRatio, parseFloat(event.target.value));
-                        setSize(parseFloat(event.target.value));
+            {!focus && <>
+                <AspectRatioSelector
+                    aspectRatio={aspectRatio}
+                    onChange={(aspectRatioId) => {
+                        onChange(aspectRatioId, size, focus);
+                        setAspectRatio(aspectRatioId);
                     }}
                 />
+                <div className="form-group">
+                    <label htmlFor="size" style={{ width: "100%" }}>
+                        Size
+                        <small
+                            className="form-text text-muted"
+                            style={{ float: "right" }}
+                        >
+                            {Math.round(size * 100)}%
+                        </small>
+                    </label>
+                    {<input
+                        type="range"
+                        className="form-control-range"
+                        id="size"
+                        min="1"
+                        max="2"
+                        step="0.1"
+                        value={size}
+                        onChange={(event) => {
+                            onChange(aspectRatio, parseFloat(event.target.value), focus);
+                            setSize(parseFloat(event.target.value));
+                        }}
+                    />}
+                </div>
+            </>}
+
+            {/* allow outpaint checkbox */}
+            <div className="form-group">
+                {/* similar to example above to enable focus */}
+                <input type="checkbox" id="focus" checked={focus} onChange={(event) => {
+                    const size = event.target.checked ? 0.5 : 1;
+                    onChange(aspectRatio, size, event.target.checked);
+                    setFocus(event.target.checked);
+                    setSize(size);
+                }} />
+                <label htmlFor="focus">Focus</label>
             </div>
         </>
     );

@@ -7,6 +7,7 @@ import {
     applyAlphaMask,
     featherEdges,
     loadImageDataElement,
+    resizeEncodedImage,
 } from "../lib/imageutil";
 import { SelectionTool, Controls as SelectionControls } from "./selection-tool";
 import { ProgressBar } from "../components/ProgressBar";
@@ -498,6 +499,14 @@ export class EnhanceTool extends BaseTool implements Tool {
         this.state = "processing";
         let imageUrl: string;
 
+        // check to see if the selection is smaller than 1 megapixel. If so, scale it up and then back down.
+        if (selectionOverlay!.width * selectionOverlay!.height < 1024 * 1024) {
+            encodedImage = await resizeEncodedImage(encodedImage, 1024, 1024, "jpeg")
+            if (encodedMask) {
+                encodedMask = await resizeEncodedImage(encodedMask, 1024, 1024, "webp")
+            }
+        }
+
         try {
             imageUrl = await workflow.run(this.prompt, this.negativePrompt, encodedImage, encodedMask, progress => this.updateProgress(progress))
         } catch (err: any) {
@@ -665,7 +674,6 @@ export const EnhanceControls: FC<ControlsProps> = ({
                     <SelectionControls
                         renderer={renderer}
                         tool={tool.selectionTool}
-                        lockAspectRatio={true}
                     />
                 </>
             )}
