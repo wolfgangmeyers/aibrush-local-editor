@@ -31,6 +31,12 @@ git clone https://github.com/Acly/comfyui-tooling-nodes
 git clone https://github.com/cubiq/ComfyUI_IPAdapter_plus.git
 ```
 
+## Install python dependencies
+
+```shell
+.\python_embeded\python.exe -m pip install bitsandbytes
+```
+
 ## Running ComfyUI
 
 Now you can start up ComfyUI by running `run_nvidia_gpu.bat`.

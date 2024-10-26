@@ -10,10 +10,10 @@ import {
     fixImageSize,
     resizeImage,
 } from "../lib/imageutil";
-import moment from "moment";
 import { Alert } from "react-bootstrap";
 import upscaleWorkflow from "../workflows/upscale_api.json";
-import { Upscale } from "../lib/workflows";
+import rembgWorkflow from "../workflows/rembg-api.json";
+import { Rembg, Upscale } from "../lib/workflows";
 import { ProgressBar } from "../components/ProgressBar";
 
 export const anonymousClient = axios.create();
@@ -26,7 +26,7 @@ interface Props {
 export const AugmentControls: FC<Props> = ({ renderer, tool }) => {
     const [backupImage, setBackupImage] = useState<string | undefined>();
     const [activeAugmentation, setActiveAugmentation] = useState<
-        "upscale" | "face_restore" | "downscale" | "extend" | null
+        "upscale" | "face_restore" | "downscale" | "extend" | "remove_background" | null
     >(null);
     const [imageWorker, setImageWorker] = useState<
         ImageUtilWorker | undefined
@@ -181,6 +181,36 @@ export const AugmentControls: FC<Props> = ({ renderer, tool }) => {
         setBackupImage(undefined);
     };
 
+    const onRemoveBackground = async () => {
+        setActiveAugmentation("remove_background");
+        setError(null);
+        try {
+            const backupImage = renderer.getEncodedImage(null, "png");
+            setBackupImage(backupImage);
+            let encodedImage = renderer.getEncodedImage(null, "png");
+            if (!encodedImage) {
+                return;
+            }
+    
+            const rembg = new Rembg(rembgWorkflow);
+            const imageUrl = await rembg.run(encodedImage, (progress) => {
+                setProgress(progress);
+            });
+    
+            const img = new Image();
+            img.src = imageUrl;
+            await new Promise((resolve) => {
+                img.onload = resolve;
+            });
+            renderer.setBaseImage(img);
+        } catch (err: any) {
+            const errMessage = err.response?.data?.message || err.message || "Background removal failed";
+            setError(errMessage);
+        } finally {
+            setActiveAugmentation(null);
+        }
+    };
+
     const overlay = renderer.getSelectionOverlay();
 
     if (activeAugmentation === "extend") {
@@ -221,7 +251,9 @@ export const AugmentControls: FC<Props> = ({ renderer, tool }) => {
             <div className="form-group" style={{ marginTop: "16px" }}>
                 <div style={{ marginTop: "16px" }}>
                     <i className="fa fa-spinner fa-spin"></i>&nbsp;{" "}
-                    Upscaling...
+                    {activeAugmentation === "upscale" ? "Upscaling..." :
+                     activeAugmentation === "remove_background" ? "Removing background..." :
+                     "Processing..."}
                     <br />
                     <ProgressBar progress={progress} />
                 </div>
@@ -316,6 +348,16 @@ export const AugmentControls: FC<Props> = ({ renderer, tool }) => {
                     <i className="fas fa-compress-arrows-alt"></i>&nbsp; Downscale Image 2x
                 </button>
             </div>}
+            <div className="form-group" style={{ marginTop: "16px" }}>
+                <button
+                    className="btn btn-primary"
+                    onClick={onRemoveBackground}
+                >
+                    <i className="fas fa-eraser"></i>&nbsp; Remove Background
+                </button>
+            </div>
         </>
     );
 };
+
+
