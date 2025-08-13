@@ -142,10 +142,11 @@ AiBrush Local Editor is a browser-based React + TypeScript image editor tailored
 
 ### Workflows Integration
 `src/lib/workflows.ts`
-- Defines three orchestrators that wrap ComfyUI flows:
-  - `Img2Img`: selection-based generation, mask-aware; handles PixArt/Flux/SDXL variants, reference images, LoRAs, denoise, seed, and “accelerator” tuning.
+- Defines four orchestrators that wrap ComfyUI flows:
+  - `Img2Img`: selection-based generation, mask-aware; handles PixArt/Flux/SDXL variants, reference images, LoRAs, denoise, seed, and "accelerator" tuning.
   - `Upscale`: model-based image upscaling.
   - `Rembg`: background removal.
+  - `FluxKontext`: Flux Kontext model for high-quality image enhancement with simple prompt + image interface.
 - Workflow JSONs are loaded from `src/workflows/*.json` and cloned per-run. Nodes are addressed by `_meta.title` labels for stable references.
 - Submits JSON to `http://{backend-host}/prompt` and listens for completion via `WebsocketHelper` on `ws://{backend-host}/ws?clientId=...`. On completion, downloads resulting images from `/view?filename=...` using `ComfyFetcher`.
 

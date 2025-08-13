@@ -397,3 +397,65 @@ export class Rembg {
         });
     }
 }
+
+export class FluxKontext {
+    private client_id: string;
+    private websocket_helper: WebsocketHelper;
+    private workflow: any;
+    private comfy_fetcher: ComfyFetcher;
+    private ids: any;
+    private backendHost: string;
+
+    constructor(workflowJSON: any) {
+        this.backendHost = localStorage.getItem("backend-host") || "localhost:8188";
+        this.workflow = JSON.parse(JSON.stringify(workflowJSON));
+        this.client_id = Math.random().toString();
+        this.ids = getIds(this.workflow);
+        this.websocket_helper = new WebsocketHelper(`ws://${this.backendHost}/ws?clientId=${this.client_id}`);
+        this.comfy_fetcher = new ComfyFetcher(`http://${this.backendHost}`)
+    }
+
+    private node(title: string): any {
+        return this.workflow[this.id(title)];
+    }
+
+    private id(title: string): string {
+        return this.ids[title];
+    }
+
+    run(prompt: string, encoded_image: string, on_progress?: (progress: number) => void): Promise<string> {
+        return new Promise((resolve) => {
+            // Set the prompt text
+            this.node("positive_prompt").inputs.text = prompt;
+            
+            // Set the input image
+            this.node("Load Image Base64").inputs.image = encoded_image;
+            
+            const p = {
+                "prompt": this.workflow,
+                "client_id": this.client_id
+            };
+            const data = JSON.stringify(p);
+            const req = new Request(`http://${this.backendHost}/prompt`, {
+                method: "POST",
+                body: data
+            });
+
+            // submit the request and get the prompt_id from the response
+            fetch(req).then(response => {
+                response.json().then(response_json => {
+                    const prompt_id = response_json["prompt_id"];
+                    console.log("prompt_id: " + prompt_id);
+                    // wait for the prompt to complete
+                    const handle_websocket_completion = async (output: any) => {
+                        // get the image
+                        const dataUrl = await this.comfy_fetcher.fetch_image(output["images"][0]["filename"]);
+                        // call the callback with the image
+                        resolve(dataUrl);
+                    };
+                    this.websocket_helper.waitForCompletion(prompt_id, handle_websocket_completion, on_progress);
+                });
+            });
+        });
+    }
+}
