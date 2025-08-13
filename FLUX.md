@@ -304,3 +304,166 @@ src/
 - Fixed 1024×1024 size ensures optimal quality for Flux Kontext model
 - Feathering ensures smooth blending at selection edges
 - Multiple results can be generated and compared before committing
+
+## IMPLEMENTATION STATUS
+
+### Completed Features
+- ✅ FluxKontext workflow class created in `src/lib/workflows.ts`
+- ✅ Fixed workflow output handling - ComfyUI returns `output.images` directly, not `output[node_id].images`
+- ✅ Random seed generation for varied results
+- ✅ Removed PreviewImage node that was causing premature completion
+- ✅ Fixed websocket completion handling to properly wait for SaveImage node
+
+### Known Issues Fixed
+1. **404 Error on image fetch**: Fixed by passing subfolder and type parameters to fetch_image()
+2. **Premature completion**: Removed PreviewImage node (173) that was sending early completion signals
+3. **Cached results**: Added proper seed randomization with `Math.floor(Math.random() * 1000000000)`
+4. **Output structure mismatch**: Handle both `output.images` and `output["136"].images` formats
+
+## CRITICAL IMPLEMENTATION LESSONS
+
+### 1. Workflow Instance Creation (MUST CREATE NEW FOR EACH RUN)
+**CRITICAL**: Create a NEW workflow instance for EACH submit, not once in constructor:
+```typescript
+// WRONG - causes websocket confusion on subsequent runs
+constructor() {
+    this.workflow = new FluxKontext(workflowJSON);
+}
+async submit() {
+    await this.workflow.run(...);
+}
+
+// CORRECT - like EnhanceTool does with Img2Img
+async submit() {
+    const workflow = new FluxKontext(workflowJSON);
+    await workflow.run(...);
+}
+```
+Each workflow run needs its own client_id and websocket connection to avoid progress/completion handler conflicts.
+
+### 2. Selection Initialization
+Must provide initial selectionOverlay with dimensions:
+```typescript
+this.selectionTool.updateArgs({
+    selectionOverlay: { x: 0, y: 0, width: 1024, height: 1024 },
+    aspectRatio: { width: 1, height: 1 },
+    size: 1024,
+    outpaint: false
+});
+```
+Without this, getSelectionOverlay() returns null/0 dimensions causing "Failed to execute 'getImageData'" errors.
+
+### 3. Arrow Navigation Location
+**IMPORTANT**: Arrow navigation is NOT in individual tool controls!
+- Arrows are rendered by ImageEditor.tsx when `showSelectionControls` is true
+- Show arrows by calling `this.selectionControlsListener(true)` when state changes
+- EnhanceTool shows arrows in "confirm" state, NOT "select" state:
+```typescript
+set state(state) {
+    this._state = state;
+    this.stateHandler(state);
+    // Show arrows in confirm state like EnhanceTool
+    this.selectionControlsListener(state === "confirm");
+}
+```
+
+### 4. Progress Bar Component
+Use the existing ProgressBar component from components/ProgressBar.tsx:
+```typescript
+import { ProgressBar } from '../components/ProgressBar';
+// Progress expects 0-1 value, component converts to percentage
+<ProgressBar progress={progress} />
+```
+
+### 5. FluxKontext Workflow Class Structure
+The workflow class must:
+- Create new client_id and WebsocketHelper for each run
+- Handle the specific output format (may be in output.images or output["136"]["images"])
+- Pass optional subfolder and type params to ComfyFetcher.fetch_image()
+
+### 6. Image Output Handling
+ComfyUI output structure varies. Check multiple locations:
+```typescript
+// Simple pattern used by most workflows
+const dataUrl = await this.comfy_fetcher.fetch_image(output["images"][0]["filename"]);
+```
+
+### 7. Error Handling Patterns
+- Check selection validity before getEncodedImage
+- Provide user-friendly error messages via notifyError
+- Catch and handle workflow errors, reverting to previous state
+
+### 8. State Management
+Tool states should follow this pattern:
+- "select" - Choosing area (no arrows)
+- "prompt" - Entering text
+- "processing" - Running workflow  
+- "confirm" - Reviewing results (arrows shown here)
+
+### 9. File Location
+Tool files go in src/image-editor/, NOT in a separate src/tools/ directory:
+- src/image-editor/flux-kontext-tool.tsx (tool and controls in same file)
+- Add to tools array in src/image-editor/ImageEditor.tsx
+
+### 10. Import Paths
+Use relative imports from image-editor location:
+```typescript
+import { Tool, BaseTool } from './tool';
+import { SelectionTool } from './selection-tool'; 
+import { loadImageDataElement, featherEdges } from '../lib/imageutil';
+import { Rect } from './models';
+import workflow from '../workflows/flux_1_kontext_dev_basic_api.json';
+import { FluxKontext } from '../lib/workflows';
+import { useCache } from '../lib/cache';
+```
+
+### 11. Workflow Output Nodes (CRITICAL)
+**IMPORTANT**: Only use ONE output node (SaveImage) in workflows to avoid premature completion:
+- PreviewImage nodes send completion signals with temp/cached images before processing finishes
+- Multiple output nodes can cause race conditions in websocket completion handling
+- ComfyUI sends "executed" message when ANY output node completes, not when ALL complete
+
+### 12. ComfyUI Output Structure Variations
+Workflows can return different output structures:
+```typescript
+// Direct structure (most common)
+output.images[0]
+
+// Node-indexed structure (when multiple SaveImage nodes)
+output["136"].images[0]  // where 136 is the node ID
+
+// Each image info contains:
+{
+  filename: "ComfyUI_00001_.png",
+  subfolder: "",
+  type: "output"  // or "temp" for preview/cached images
+}
+```
+
+### 13. Websocket Prompt ID Matching
+- Each workflow run creates a new client_id and WebsocketHelper
+- WebSocket checks `result.data.prompt_id === this.promptId` to match messages
+- Progress messages also need prompt_id checking to avoid cross-talk
+- One "executed" message sent per prompt when workflow completes
+
+### 14. Seed Randomization
+Always randomize seed for variation between runs:
+```typescript
+this.node("KSampler").inputs.seed = Math.floor(Math.random() * 1000000000);
+```
+
+### 15. Error Handling in Promises
+When using async workflows, properly handle both resolve and reject:
+```typescript
+return new Promise((resolve, reject) => {
+    // ... workflow setup ...
+    const handle_websocket_completion = async (output: any) => {
+        if (!output || !output.images) {
+            reject(new Error("Failed to get image from workflow output"));
+            return;
+        }
+        // ... process output ...
+        resolve(dataUrl);
+    };
+});
+```

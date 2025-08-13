@@ -180,18 +180,6 @@
       "title": "Image Stitch"
     }
   },
-  "173": {
-    "inputs": {
-      "images": [
-        "42",
-        0
-      ]
-    },
-    "class_type": "PreviewImage",
-    "_meta": {
-      "title": "Preview Image"
-    }
-  },
   "177": {
     "inputs": {
       "conditioning": [

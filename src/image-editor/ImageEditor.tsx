@@ -17,6 +17,7 @@ import { InpaintControls, InpaintTool } from "./inpaint-tool";
 import { ReferenceImagesControls } from "./reference-images";
 import BackendSelector from "../components/BackendSelector";
 import { AugmentControls } from "./augment-tool";
+import { FluxKontextTool, FluxKontextControls } from "./flux-kontext-tool";
 
 interface CanPreventDefault {
     preventDefault: () => void;
@@ -118,6 +119,22 @@ export const ImageEditor = () => {
                 );
             },
             
+        },
+        {
+            name: "flux-kontext",
+            iconClass: "fas fa-sparkles",
+            constructor: (r: Renderer) => new FluxKontextTool(r),
+            defaultArgs: {},
+            renderControls: (t: Tool, renderer: Renderer) => {
+                t.onShowSelectionControls(setShowSelectionControls);
+                return (
+                    <FluxKontextControls
+                        tool={t as FluxKontextTool}
+                        renderer={renderer}
+                        key={"flux-kontext-controls"}
+                    />
+                );
+            },
         },
         {
             name: "reference images",

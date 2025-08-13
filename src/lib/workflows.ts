@@ -399,8 +399,6 @@ export class Rembg {
 }
 
 export class FluxKontext {
-    private client_id: string;
-    private websocket_helper: WebsocketHelper;
     private workflow: any;
     private comfy_fetcher: ComfyFetcher;
     private ids: any;
@@ -409,9 +407,7 @@ export class FluxKontext {
     constructor(workflowJSON: any) {
         this.backendHost = localStorage.getItem("backend-host") || "localhost:8188";
         this.workflow = JSON.parse(JSON.stringify(workflowJSON));
-        this.client_id = Math.random().toString();
         this.ids = getIds(this.workflow);
-        this.websocket_helper = new WebsocketHelper(`ws://${this.backendHost}/ws?clientId=${this.client_id}`);
         this.comfy_fetcher = new ComfyFetcher(`http://${this.backendHost}`)
     }
 
@@ -424,16 +420,25 @@ export class FluxKontext {
     }
 
     run(prompt: string, encoded_image: string, on_progress?: (progress: number) => void): Promise<string> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
+            // Create a new client_id and websocket for this run
+            const client_id = Math.random().toString();
+            const websocket_helper = new WebsocketHelper(`ws://${this.backendHost}/ws?clientId=${client_id}`);
+            
             // Set the prompt text
             this.node("positive_prompt").inputs.text = prompt;
             
-            // Set the input image
+            // Set the input image - note the workflow uses ETN_LoadImageBase64
             this.node("Load Image Base64").inputs.image = encoded_image;
+            
+            // Set a random seed for variation - using larger range and Date.now() for more uniqueness
+            const randomSeed = Math.floor(Math.random() * 1000000000000) + Date.now();
+            this.node("KSampler").inputs.seed = randomSeed;
+            console.log("Using seed:", randomSeed);
             
             const p = {
                 "prompt": this.workflow,
-                "client_id": this.client_id
+                "client_id": client_id
             };
             const data = JSON.stringify(p);
             const req = new Request(`http://${this.backendHost}/prompt`, {
@@ -448,12 +453,41 @@ export class FluxKontext {
                     console.log("prompt_id: " + prompt_id);
                     // wait for the prompt to complete
                     const handle_websocket_completion = async (output: any) => {
-                        // get the image
-                        const dataUrl = await this.comfy_fetcher.fetch_image(output["images"][0]["filename"]);
-                        // call the callback with the image
+                        console.log("FluxKontext websocket completion received, output:", output);
+                        
+                        // Check if this is the SaveImage node (136) output we want
+                        // Ignore PreviewImage node (173) or other temp outputs
+                        let imageInfo;
+                        
+                        // First check for the specific SaveImage node output (136)
+                        if (output["136"] && output["136"]["images"] && output["136"]["images"][0]) {
+                            imageInfo = output["136"]["images"][0];
+                            console.log("Using SaveImage node (136) output");
+                        } else if (output["images"] && output["images"][0]) {
+                            // Fallback to direct structure, but check if it's not a temp/preview
+                            const img = output["images"][0];
+                            if (img.type === "temp" || img.filename.includes("temp")) {
+                                console.log("Ignoring temp/preview image, waiting for final output...");
+                                return; // Don't resolve yet, wait for the real output
+                            }
+                            imageInfo = img;
+                            console.log("Using direct output structure");
+                        } else {
+                            console.log("Output structure not ready yet:", output);
+                            return; // Don't resolve or reject, just wait for next message
+                        }
+                        
+                        console.log("Fetching image with info:", imageInfo);
+                        // ComfyUI provides filename, subfolder, and type in the output
+                        const dataUrl = await this.comfy_fetcher.fetch_image(
+                            imageInfo["filename"],
+                            imageInfo["subfolder"] || "",
+                            imageInfo["type"] || "output"
+                        );
+                        console.log("Image fetched successfully");
                         resolve(dataUrl);
                     };
-                    this.websocket_helper.waitForCompletion(prompt_id, handle_websocket_completion, on_progress);
+                    websocket_helper.waitForCompletion(prompt_id, handle_websocket_completion, on_progress);
                 });
             });
         });

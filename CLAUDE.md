@@ -49,20 +49,23 @@ This is an AI-powered image editor using React/TypeScript frontend with ComfyUI 
 - **Entry**: `src/main.tsx` → `src/App.tsx` → `src/image-editor/ImageEditor.tsx`
 - **Rendering Engine**: `src/image-editor/renderer.ts` - Canvas layer management
 - **ComfyUI Client**: `src/comfyui-utils/comfyuiClient.ts` - API and WebSocket communication
-- **Tool Implementation**: `src/tools/[tool-name]/` - Each tool has its own directory
+- **Tool Implementation**: `src/image-editor/[tool-name].tsx` - Each tool in image-editor directory
+- **Workflow Classes**: `src/lib/workflows.ts` - Img2Img, FluxKontext, Rembg, Upscale classes
+- **WebSocket Handler**: `src/lib/websocket.ts` - Handles ComfyUI progress and completion
 
 ### Adding New Features
 
 **New Tool**:
-1. Create directory in `src/tools/`
-2. Implement `BaseTool` interface
-3. Add to `ImageEditor.tsx` tool list
-4. Create controls component
+1. Create file in `src/image-editor/` (NOT `src/tools/`)
+2. Extend `BaseTool` and implement `Tool` interface
+3. Add to `ImageEditor.tsx` tools array with icon and controls
+4. Include controls component in same file as tool class
 
 **New Workflow**:
 1. Add JSON to `src/workflows/`
 2. Use `_meta.title` for parameter injection
-3. Update relevant tool to use workflow
+3. Create workflow class in `src/lib/workflows.ts`
+4. CRITICAL: Create new workflow instance for EACH run
 
 ### Important Patterns
 
@@ -71,6 +74,14 @@ This is an AI-powered image editor using React/TypeScript frontend with ComfyUI 
 - Store tool settings in localStorage with `tool_args_` prefix
 - Handle ComfyUI errors gracefully with user feedback
 - Image processing in Web Workers when CPU-intensive
+- Arrow navigation is in ImageEditor.tsx, controlled via `showSelectionControls`
+- Show arrows by setting `this.selectionControlsListener(state === "confirm")`
+- Create new workflow instances per run to avoid websocket conflicts
+- Selection must be initialized with valid dimensions to avoid getImageData errors
+- Only use SaveImage nodes in workflows (avoid PreviewImage to prevent premature completion)
+- Set random seeds in KSampler nodes for variation: `Math.floor(Math.random() * 1000000000)`
+- Check both `output.images` and `output[nodeId].images` for ComfyUI outputs
+- Pass subfolder and type params to ComfyFetcher.fetch_image() to avoid 404s
 
 ### Testing Considerations
 
