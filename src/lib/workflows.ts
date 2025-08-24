@@ -493,3 +493,98 @@ export class FluxKontext {
         });
     }
 }
+
+export class QwenImageEdit {
+    private workflow: any;
+    private comfy_fetcher: ComfyFetcher;
+    private ids: any;
+    private backendHost: string;
+
+    constructor(workflowJSON: any) {
+        this.backendHost = localStorage.getItem("backend-host") || "localhost:8188";
+        this.workflow = JSON.parse(JSON.stringify(workflowJSON));
+        this.ids = getIds(this.workflow);
+        this.comfy_fetcher = new ComfyFetcher(`http://${this.backendHost}`)
+    }
+
+    private node(title: string): any {
+        return this.workflow[this.id(title)];
+    }
+
+    private id(title: string): string {
+        return this.ids[title];
+    }
+
+    run(prompt: string, encoded_image: string, on_progress?: (progress: number) => void): Promise<string> {
+        return new Promise((resolve, reject) => {
+            // Create a new client_id and websocket for this run
+            const client_id = Math.random().toString();
+            const websocket_helper = new WebsocketHelper(`ws://${this.backendHost}/ws?clientId=${client_id}`);
+            
+            // Set the prompt text in node 76 (positive TextEncodeQwenImageEdit)
+            this.workflow["76"].inputs.prompt = prompt;
+            
+            // Set the input image - using ETN_LoadImageBase64
+            this.node("Load Image Base64").inputs.image = encoded_image;
+            
+            // Set a random seed for variation
+            const randomSeed = Math.floor(Math.random() * 1000000000000) + Date.now();
+            this.node("KSampler").inputs.seed = randomSeed;
+            console.log("QwenImageEdit using seed:", randomSeed);
+            
+            const p = {
+                "prompt": this.workflow,
+                "client_id": client_id
+            };
+            const data = JSON.stringify(p);
+            const req = new Request(`http://${this.backendHost}/prompt`, {
+                method: "POST",
+                body: data
+            });
+
+            // submit the request and get the prompt_id from the response
+            fetch(req).then(response => {
+                response.json().then(response_json => {
+                    const prompt_id = response_json["prompt_id"];
+                    console.log("QwenImageEdit prompt_id: " + prompt_id);
+                    // wait for the prompt to complete
+                    const handle_websocket_completion = async (output: any) => {
+                        console.log("QwenImageEdit websocket completion received, output:", output);
+                        
+                        // Check for SaveImage node (60) output
+                        let imageInfo;
+                        
+                        // First check for the specific SaveImage node output (60)
+                        if (output["60"] && output["60"]["images"] && output["60"]["images"][0]) {
+                            imageInfo = output["60"]["images"][0];
+                            console.log("Using SaveImage node (60) output");
+                        } else if (output["images"] && output["images"][0]) {
+                            // Fallback to direct structure
+                            const img = output["images"][0];
+                            if (img.type === "temp" || img.filename.includes("temp")) {
+                                console.log("Ignoring temp/preview image, waiting for final output...");
+                                return; // Don't resolve yet, wait for the real output
+                            }
+                            imageInfo = img;
+                            console.log("Using direct output structure");
+                        } else {
+                            console.log("Output structure not ready yet:", output);
+                            return; // Don't resolve or reject, just wait for next message
+                        }
+                        
+                        console.log("Fetching image with info:", imageInfo);
+                        // ComfyUI provides filename, subfolder, and type in the output
+                        const dataUrl = await this.comfy_fetcher.fetch_image(
+                            imageInfo["filename"],
+                            imageInfo["subfolder"] || "",
+                            imageInfo["type"] || "output"
+                        );
+                        console.log("QwenImageEdit image fetched successfully");
+                        resolve(dataUrl);
+                    };
+                    websocket_helper.waitForCompletion(prompt_id, handle_websocket_completion, on_progress);
+                });
+            });
+        });
+    }
+}

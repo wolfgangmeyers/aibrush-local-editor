@@ -122,7 +122,7 @@ export const ImageEditor = () => {
         },
         {
             name: "flux-kontext",
-            iconClass: "fas fa-sparkles",
+            iconClass: "fas fa-star",
             constructor: (r: Renderer) => new FluxKontextTool(r),
             defaultArgs: {},
             renderControls: (t: Tool, renderer: Renderer) => {

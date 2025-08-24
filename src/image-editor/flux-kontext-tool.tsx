@@ -1,11 +1,11 @@
 import { FC, useEffect, useState } from 'react';
 import { Tool, BaseTool } from './tool';
 import { Renderer } from './renderer';
-import { SelectionTool } from './selection-tool';
+import { SelectionTool, Controls as SelectionControls } from './selection-tool';
 import { loadImageDataElement, featherEdges } from '../lib/imageutil';
 import { Rect } from './models';
-import fluxKontextWorkflow from '../workflows/flux_1_kontext_dev_basic_api.json';
-import { FluxKontext } from '../lib/workflows';
+import qwenImageEditWorkflow from '../workflows/qwen-image-edit.json';
+import { QwenImageEdit } from '../lib/workflows';
 import { useCache } from '../lib/cache';
 import { ProgressBar } from '../components/ProgressBar';
 
@@ -38,20 +38,9 @@ export class FluxKontextTool extends BaseTool implements Tool {
         super(renderer, "flux-kontext");
         this.selectionTool = new SelectionTool(renderer);
         
-        // Set fixed 1024x1024 selection with initial position
-        this.selectionTool.updateArgs({
-            ...this.selectionTool.getArgs(),
-            selectionOverlay: {
-                x: 0,
-                y: 0,
-                width: 1024,
-                height: 1024
-            },
-            aspectRatio: { width: 1, height: 1 },
-            size: 1024,
-            outpaint: false,
-            fixedSize: true  // Custom flag to disable size controls
-        });
+        // Initialize selection with adjustable size
+        const selectionArgs = this.selectionTool.getArgs();
+        this.selectionTool.updateArgs(selectionArgs);
         
         this.state = "select";
     }
@@ -104,8 +93,8 @@ export class FluxKontextTool extends BaseTool implements Tool {
         
         try {
             // Create a new workflow instance for each submit (like EnhanceTool does)
-            const workflow = new FluxKontext(fluxKontextWorkflow);
-            console.log("Starting FluxKontext workflow...");
+            const workflow = new QwenImageEdit(qwenImageEditWorkflow);
+            console.log("Starting QwenImageEdit workflow...");
             const imageUrl = await workflow.run(
                 this.prompt, 
                 encodedImage, 
@@ -210,29 +199,31 @@ export class FluxKontextTool extends BaseTool implements Tool {
     }
 
     select(direction: "left" | "right") {
-        if (this.imageData.length === 0) return;
+        // Allow cycling through original (-1) and generated images like EnhanceTool
+        if (direction === "left") {
+            this.selectedImageDataIndex--;
+            if (this.selectedImageDataIndex < -1) {
+                this.selectedImageDataIndex = this.imageData.length - 1;
+            }
+        }
+        if (direction === "right") {
+            this.selectedImageDataIndex++;
+            if (this.selectedImageDataIndex >= this.imageData.length) {
+                this.selectedImageDataIndex = -1;
+            }
+        }
         
-        const delta = direction === "right" ? 1 : -1;
-        this.selectedImageDataIndex = Math.max(0, Math.min(this.imageData.length - 1, this.selectedImageDataIndex + delta));
-        this.selectedImageData = this.imageData[this.selectedImageDataIndex];
-        this.renderer.setEditImage(this.selectedImageData);
+        // -1 means show original (no edit overlay)
+        if (this.selectedImageDataIndex === -1) {
+            this.selectedImageData = null;
+            this.renderer.setEditImage(null);
+        } else {
+            this.selectedImageData = this.imageData[this.selectedImageDataIndex];
+            this.renderer.setEditImage(this.selectedImageData);
+        }
     }
 
     continueToPrompt() {
-        // Make sure we have a valid selection before continuing
-        const selectionOverlay = this.renderer.getSelectionOverlay();
-        if (!selectionOverlay || selectionOverlay.width === 0 || selectionOverlay.height === 0) {
-            // Initialize default selection if none exists
-            this.selectionTool.updateArgs({
-                ...this.selectionTool.getArgs(),
-                selectionOverlay: {
-                    x: 0,
-                    y: 0,
-                    width: 1024,
-                    height: 1024
-                }
-            });
-        }
         this.state = "prompt";
     }
 
@@ -364,21 +355,6 @@ export class FluxKontextTool extends BaseTool implements Tool {
     }
 
     updateArgs(args: any) {
-        // When the tool is activated, ensure selection is initialized
-        if (!args.selectionOverlay || args.selectionOverlay.width === 0) {
-            args = {
-                ...args,
-                selectionOverlay: {
-                    x: 0,
-                    y: 0,
-                    width: 1024,
-                    height: 1024
-                },
-                aspectRatio: { width: 1, height: 1 },
-                size: 1024,
-                outpaint: false
-            };
-        }
         this.selectionTool.updateArgs(args);
     }
 }
@@ -388,7 +364,7 @@ interface ControlsProps {
     tool: FluxKontextTool;
 }
 
-export const FluxKontextControls: FC<ControlsProps> = ({ tool }) => {
+export const FluxKontextControls: FC<ControlsProps> = ({ renderer, tool }) => {
     const [prompt, setPrompt] = useCache("flux-kontext-prompt", "");
     const [state, setState] = useState<FluxKontextToolState>(tool.state);
     const [progress, setProgress] = useState(0);
@@ -409,10 +385,10 @@ export const FluxKontextControls: FC<ControlsProps> = ({ tool }) => {
                     Move the selection square to the area you want to enhance
                 </div>
                 
-                <div className="mb-3">
-                    <label className="form-label">Selection Size</label>
-                    <div className="text-muted">1024×1024 (fixed)</div>
-                </div>
+                <SelectionControls
+                    renderer={renderer}
+                    tool={tool.selectionTool}
+                />
 
                 <button 
                     className="btn btn-primary w-100"
@@ -495,38 +471,34 @@ export const FluxKontextControls: FC<ControlsProps> = ({ tool }) => {
     if (state === "confirm") {
         return (
             <div className="tool-controls">
-
-                <div className="d-grid gap-2">
+                <div style={{ marginBottom: "16px" }}>
                     <button 
-                        className="btn btn-success"
-                        onClick={() => tool.confirm()}
-                    >
-                        <i className="fas fa-check me-2"></i>
-                        Save to Image
-                    </button>
-                    
-                    <button 
-                        className="btn btn-primary"
-                        onClick={() => tool.retry()}
-                    >
-                        <i className="fas fa-redo me-2"></i>
-                        Retry
-                    </button>
-                    
-                    <button 
-                        className="btn btn-warning"
-                        onClick={() => tool.deleteSelected()}
-                    >
-                        <i className="fas fa-trash me-2"></i>
-                        Delete This Result
-                    </button>
-                    
-                    <button 
-                        className="btn btn-secondary"
+                        className="btn btn-primary btn-sm"
                         onClick={() => tool.cancel()}
+                        style={{ marginRight: "8px" }}
                     >
-                        <i className="fas fa-times me-2"></i>
-                        Cancel
+                        <i className="fa fa-times"></i>&nbsp; Revert
+                    </button>
+                    <button 
+                        className="btn btn-primary btn-sm"
+                        onClick={() => tool.confirm()}
+                        style={{ marginRight: "8px" }}
+                    >
+                        <i className="fa fa-save"></i>&nbsp; Save
+                    </button>
+                    <button 
+                        className="btn btn-primary btn-sm"
+                        onClick={() => tool.retry()}
+                        style={{ marginRight: "8px" }}
+                    >
+                        <i className="fa fa-redo"></i>&nbsp; Retry
+                    </button>
+                    <button 
+                        className="btn btn-danger btn-sm"
+                        onClick={() => tool.deleteSelected()}
+                        style={{ marginRight: "8px" }}
+                    >
+                        <i className="fa fa-trash"></i>&nbsp; Delete
                     </button>
                 </div>
             </div>
