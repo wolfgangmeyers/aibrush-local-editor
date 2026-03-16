@@ -494,6 +494,108 @@ export class FluxKontext {
     }
 }
 
+export class Flux2ImageEdit {
+    private workflow: any;
+    private comfy_fetcher: ComfyFetcher;
+    private ids: any;
+    private backendHost: string;
+
+    constructor(workflowJSON: any) {
+        this.backendHost = localStorage.getItem("backend-host") || "localhost:8188";
+        this.workflow = JSON.parse(JSON.stringify(workflowJSON));
+        this.ids = getIds(this.workflow);
+        this.comfy_fetcher = new ComfyFetcher(`http://${this.backendHost}`)
+    }
+
+    private node(title: string): any {
+        return this.workflow[this.id(title)];
+    }
+
+    private id(title: string): string {
+        return this.ids[title];
+    }
+
+    set_model(unet_name: string) {
+        this.node("Load Diffusion Model").inputs.unet_name = unet_name;
+        if (unet_name.toLowerCase().includes("klein")) {
+            this.node("Load CLIP").inputs.clip_name = "qwen_3_8b_fp8mixed.safetensors";
+        }
+    }
+
+    set_steps(steps: number) {
+        // Both PrimitiveInt nodes share title "Steps", so access by raw ID
+        // 68:90 = turbo steps, 68:91 = normal steps
+        this.workflow["68:90"].inputs.value = steps;
+        this.workflow["68:91"].inputs.value = steps;
+    }
+
+    run(prompt: string, encoded_image: string, on_progress?: (progress: number) => void): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const client_id = Math.random().toString();
+            const websocket_helper = new WebsocketHelper(`ws://${this.backendHost}/ws?clientId=${client_id}`);
+
+            // Set the prompt text
+            this.node("CLIP Text Encode (Positive Prompt)").inputs.text = prompt;
+
+            // Set the input image
+            this.node("Load Image Base64").inputs.image = encoded_image;
+
+            // Set a random seed for variation
+            const randomSeed = Math.floor(Math.random() * 1000000000000) + Date.now();
+            this.node("RandomNoise").inputs.noise_seed = randomSeed;
+
+            const p = {
+                "prompt": this.workflow,
+                "client_id": client_id
+            };
+            const data = JSON.stringify(p);
+            const req = new Request(`http://${this.backendHost}/prompt`, {
+                method: "POST",
+                body: data
+            });
+
+            fetch(req).then(response => {
+                response.json().then(response_json => {
+                    const prompt_id = response_json["prompt_id"];
+                    console.log("Flux2ImageEdit prompt_id: " + prompt_id);
+
+                    const handle_websocket_completion = async (output: any) => {
+                        console.log("Flux2ImageEdit websocket completion received, output:", output);
+
+                        let imageInfo;
+
+                        // SaveImage node is "9"
+                        if (output["9"] && output["9"]["images"] && output["9"]["images"][0]) {
+                            imageInfo = output["9"]["images"][0];
+                            console.log("Using SaveImage node (9) output");
+                        } else if (output["images"] && output["images"][0]) {
+                            const img = output["images"][0];
+                            if (img.type === "temp" || img.filename.includes("temp")) {
+                                console.log("Ignoring temp/preview image, waiting for final output...");
+                                return;
+                            }
+                            imageInfo = img;
+                            console.log("Using direct output structure");
+                        } else {
+                            console.log("Output structure not ready yet:", output);
+                            return;
+                        }
+
+                        const dataUrl = await this.comfy_fetcher.fetch_image(
+                            imageInfo["filename"],
+                            imageInfo["subfolder"] || "",
+                            imageInfo["type"] || "output"
+                        );
+                        console.log("Flux2ImageEdit image fetched successfully");
+                        resolve(dataUrl);
+                    };
+                    websocket_helper.waitForCompletion(prompt_id, handle_websocket_completion, on_progress);
+                });
+            });
+        });
+    }
+}
+
 export class QwenImageEdit {
     private workflow: any;
     private comfy_fetcher: ComfyFetcher;

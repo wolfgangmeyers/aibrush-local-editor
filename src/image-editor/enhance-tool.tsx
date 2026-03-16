@@ -14,13 +14,14 @@ import { ProgressBar } from "../components/ProgressBar";
 import { PencilTool } from "./pencil-tool";
 import { MaskEditor } from "./mask-editor-controls";
 import { Rect } from "./models";
-import { Img2Img } from "../lib/workflows";
+import { Img2Img, Flux2ImageEdit } from "../lib/workflows";
 
 // import img2img from "../workflows/dreamshaper_img2img64_api.json";
 // import img2imgmask from "../workflows/dreamshaper_img2img64_mask_api.json";
 import img2imgmaskipadapter from "../workflows/dreamshaper_img2img64_mask_ipadapter_api.json";
 import img2imgmaskpixart from "../workflows/pixart-sigma-img2img-mask-api.json";
 import img2imgmaskflux from "../workflows/flux-dev-api.json";
+import flux2DevWorkflow from "../workflows/flux2-dev-api.json";
 
 import { useCache } from "../lib/cache";
 import { ComfyFetcher } from "../lib/comfyfetcher";
@@ -58,6 +59,7 @@ export class EnhanceTool extends BaseTool implements Tool {
     private stateHandler: (state: EnhanceToolState) => void = () => { };
     private selectionControlsListener: (show: boolean) => void = () => { };
     private maskHandler: (isMasked: boolean) => void = () => { };
+    private savedMaskHandler: (hasSavedMask: boolean) => void = () => { };
 
     private imageData: Array<ImageData> = [];
     private selectedImageDataIndex: number = -1;
@@ -68,6 +70,7 @@ export class EnhanceTool extends BaseTool implements Tool {
     private errorListener?: (error: string | null) => void;
     private dirtyListener?: (dirty: boolean) => void;
     private savedEncodedMask?: string;
+    private savedMaskImageData?: ImageData;
     private referenceImagesWeight = 1;
     private selectedLoras: SelectedLora[] = [];
     private selectedModel: string = "dreamshaperXL_turboDpmppSDE.safetensors";
@@ -337,6 +340,10 @@ export class EnhanceTool extends BaseTool implements Tool {
         this.progressListener = listener;
     }
 
+    private isFlux2(): boolean {
+        return this.selectedModel.toLowerCase().includes("flux2");
+    }
+
     private newId(): string {
         return `${this.idCounter++}`;
     }
@@ -420,6 +427,28 @@ export class EnhanceTool extends BaseTool implements Tool {
         }
     }
 
+    reapplyMask() {
+        if (this.savedMaskImageData) {
+            this.renderer.createMask();
+            this.renderer.setMaskImageData(this.savedMaskImageData);
+            this.maskHandler(true);
+        }
+    }
+
+    editPrompt() {
+        // Go back to default state to edit prompt, preserving mask
+        this.renderer.setEditImage(null);
+        this.state = "default";
+    }
+
+    onChangeSavedMask(handler: (hasSavedMask: boolean) => void) {
+        this.savedMaskHandler = handler;
+    }
+
+    hasSavedMask(): boolean {
+        return !!this.savedEncodedMask;
+    }
+
     deleteSelected() {
         this.imageData.splice(this.selectedImageDataIndex, 1);
         if (this.selectedImageDataIndex >= this.imageData.length) {
@@ -440,15 +469,18 @@ export class EnhanceTool extends BaseTool implements Tool {
     }
 
     async submit() {
+        const isRetry = this.state !== "default";
         if (this.state === "default") {
             this.imageData = [];
-            this.savedEncodedMask = undefined;
-        }
-        if (this.savedEncodedMask) {
-            await this.restoreMask();
         }
         this.dirty = true;
         this.notifyError(null);
+        // On retry, restore the saved mask if no active mask on renderer.
+        // On fresh submit from "default", respect the user's choice — no auto-restore.
+        if (isRetry && this.savedMaskImageData && !this.renderer.isMasked()) {
+            this.renderer.createMask();
+            this.renderer.setMaskImageData(this.savedMaskImageData);
+        }
         const selectionOverlay = this.renderer.getSelectionOverlay();
         let encodedImage = this.renderer.getEncodedImage(
             selectionOverlay!,
@@ -461,41 +493,21 @@ export class EnhanceTool extends BaseTool implements Tool {
         let encodedMask: string | undefined;
         let maskData: ImageData | undefined;
         if (this.renderer.isMasked()) {
-            encodedMask = this.renderer.getEncodedMask(
-                "mask"
-            );
-            this.savedEncodedMask = encodedMask;
+            // Save raw mask layer data (no conversion) for restoring later
+            const rawMask = this.renderer.getRawMaskImageData(selectionOverlay!);
+            if (rawMask) {
+                this.savedMaskImageData = new ImageData(
+                    new Uint8ClampedArray(rawMask.data),
+                    rawMask.width,
+                    rawMask.height
+                );
+            }
+            // getImageData("mask") applies convertMaskToErasure for alpha masking the result
             maskData = this.renderer.getImageData(selectionOverlay!, "mask");
+            encodedMask = this.renderer.getEncodedMask("mask");
+            this.savedEncodedMask = encodedMask;
+            this.savedMaskHandler(true);
         }
-        let workflow: Img2Img;
-        const referenceImages = this.renderer.getEncodedReferenceImages();
-        let workflowJSON: any;
-        if (this.selectedModel.toLowerCase().includes("pixart")) {
-            workflowJSON = img2imgmaskpixart;
-        } else if (this.selectedModel.toLowerCase().includes("flux")) {
-            workflowJSON = img2imgmaskflux;
-        } else {
-            workflowJSON = img2imgmaskipadapter;
-        }
-        // debugger;
-        workflow = new Img2Img(workflowJSON);
-        if (referenceImages.length > 0) {
-            workflow.set_reference_images(referenceImages);
-            workflow.set_reference_images_weight(this.referenceImagesWeight);
-        }
-        if (this.selectedLoras.length > 0) {
-            workflow.set_selected_loras(this.selectedLoras);
-        }
-        workflow.set_seed(Math.floor(Math.random() * 1000000000));
-        workflow.set_denoise(this.variationStrength);
-        workflow.set_selected_model(this.selectedModel);
-        // debugger;
-        if (!this.accelerator) {
-            workflow.disable_accelerator();
-        }
-
-        console.log("workflow", workflow);
-
         this.state = "processing";
         let imageUrl: string;
 
@@ -508,7 +520,41 @@ export class EnhanceTool extends BaseTool implements Tool {
         }
 
         try {
-            imageUrl = await workflow.run(this.prompt, this.negativePrompt, encodedImage, encodedMask, progress => this.updateProgress(progress))
+            if (this.isFlux2()) {
+                // Flux 2 uses a different workflow structure — no mask, no negative prompt
+                const flux2Workflow = new Flux2ImageEdit(flux2DevWorkflow);
+                flux2Workflow.set_model(this.selectedModel);
+                if (this.selectedModel.toLowerCase().includes("klein")) {
+                    flux2Workflow.set_steps(4);
+                }
+                imageUrl = await flux2Workflow.run(this.prompt, encodedImage, progress => this.updateProgress(progress));
+            } else {
+                let workflow: Img2Img;
+                const referenceImages = this.renderer.getEncodedReferenceImages();
+                let workflowJSON: any;
+                if (this.selectedModel.toLowerCase().includes("pixart")) {
+                    workflowJSON = img2imgmaskpixart;
+                } else if (this.selectedModel.toLowerCase().includes("flux")) {
+                    workflowJSON = img2imgmaskflux;
+                } else {
+                    workflowJSON = img2imgmaskipadapter;
+                }
+                workflow = new Img2Img(workflowJSON);
+                if (referenceImages.length > 0) {
+                    workflow.set_reference_images(referenceImages);
+                    workflow.set_reference_images_weight(this.referenceImagesWeight);
+                }
+                if (this.selectedLoras.length > 0) {
+                    workflow.set_selected_loras(this.selectedLoras);
+                }
+                workflow.set_seed(Math.floor(Math.random() * 1000000000));
+                workflow.set_denoise(this.variationStrength);
+                workflow.set_selected_model(this.selectedModel);
+                if (!this.accelerator) {
+                    workflow.disable_accelerator();
+                }
+                imageUrl = await workflow.run(this.prompt, this.negativePrompt, encodedImage, encodedMask, progress => this.updateProgress(progress));
+            }
         } catch (err: any) {
             console.error("Error creating images", err);
             const errMessage =
@@ -609,12 +655,15 @@ export const EnhanceControls: FC<ControlsProps> = ({
     const [selectingLoras, setSelectingLoras] = useState(false);
     const [selectedModel, setSelectedModel] = useCache("selected-model", "dreamshaperXL_turboDpmppSDE.safetensors");
     const [accelerator, setAccelerator] = useCache("accelerator", true);
+    const [hasSavedMask, setHasSavedMask] = useState(tool.hasSavedMask());
 
     const hasReferenceImages = renderer.referencImageCount() > 0;
+    const isFlux2 = selectedModel.toLowerCase().includes("flux2");
 
 
     tool.onChangeState(setState);
     tool.onChangeMask(setIsMasked);
+    tool.onChangeSavedMask(setHasSavedMask);
     tool.onProgress(setProgress);
     tool.onError(setError);
 
@@ -623,10 +672,15 @@ export const EnhanceControls: FC<ControlsProps> = ({
         const fetcher = new ComfyFetcher(`http://${backendHost}`)
         fetcher.fetch_object_info().then(objectInfo => {
             setLoras(objectInfo.LoraLoader.input.required.lora_name[0]);
-            setModels([
+            const allModels = [
                 ...objectInfo.CheckpointLoaderSimple.input.required.ckpt_name[0],
                 ...objectInfo.UNETLoader.input.required.unet_name[0]
-            ]);
+            ];
+            setModels(allModels);
+            // If cached model isn't in the list, default to first available
+            if (allModels.length > 0 && !allModels.includes(selectedModel)) {
+                setSelectedModel(allModels[0]);
+            }
         })
     }, []);
 
@@ -691,71 +745,79 @@ export const EnhanceControls: FC<ControlsProps> = ({
                         </label>
                         {/* refresh icon */}
 
-                        <input
-                            type="text"
+                        <textarea
                             className="form-control"
                             id="prompt"
                             value={prompt}
                             onChange={(e) => {
                                 setPrompt(e.target.value);
                             }}
+                            rows={4}
+                            style={{ resize: "vertical", whiteSpace: "pre-wrap", wordWrap: "break-word", overflow: "auto" }}
                         />
 
                         <small className="form-text text-muted">
                             Customize the text prompt here
                         </small>
                     </div>
-                    {/* negative prompt */}
-                    <div className="form-group">
-                        <label htmlFor="negative-prompt">
-                            Negative Prompt&nbsp;
-                        </label>
-                        <input
-                            type="text"
-                            className="form-control"
-                            id="negative-prompt"
-                            value={negativePrompt}
-                            onChange={(e) => {
-                                setNegativePrompt(e.target.value);
-                            }}
-                        />
-                        <small className="form-text text-muted">
-                            Customize the negative text prompt here
-                        </small>
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="variation-strength">
-                            Variation Strength:{" "}
-                            {Math.round(variationStrength * 100)}%
-                        </label>
-                        <input
-                            type="range"
-                            className="form-control-range"
-                            id="variation-strength"
-                            min="0"
-                            max="1"
-                            step="0.05"
-                            value={variationStrength}
-                            onChange={(e) => {
-                                setVariationStrength(
-                                    parseFloat(e.target.value)
-                                );
-                            }}
-                        />
-                        <small className="form-text text-muted">
-                            How much variation to use
-                        </small>
-                    </div>
-                    {/* loras */}
-                    <div className="form-group">
-                        <label htmlFor="loras">Loras</label>
-                        {selectedLoras.map(lora => (
-                            <SelectedLoraTag key={`selected-lora-${lora}`} lora={lora} onRemove={(lora) => setSelectedLoras(selectedLoras => selectedLoras.filter(selectedLora => selectedLora.name !== lora.name))} />
-                        ))}
-                        <button style={{marginTop: "8px"}} className="btn btn-primary btn-sm form-control" onClick={() => setSelectingLoras(true)}>
-                            <i className="fas fa-plus" />&nbsp;Add
-                        </button>
-                    </div>
+                    {/* negative prompt — not supported by Flux 2 */}
+                    {!isFlux2 && (
+                        <div className="form-group">
+                            <label htmlFor="negative-prompt">
+                                Negative Prompt&nbsp;
+                            </label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                id="negative-prompt"
+                                value={negativePrompt}
+                                onChange={(e) => {
+                                    setNegativePrompt(e.target.value);
+                                }}
+                            />
+                            <small className="form-text text-muted">
+                                Customize the negative text prompt here
+                            </small>
+                        </div>
+                    )}
+                    {/* variation strength — not supported by Flux 2 */}
+                    {!isFlux2 && (
+                        <div className="form-group">
+                            <label htmlFor="variation-strength">
+                                Variation Strength:{" "}
+                                {Math.round(variationStrength * 100)}%
+                            </label>
+                            <input
+                                type="range"
+                                className="form-control-range"
+                                id="variation-strength"
+                                min="0"
+                                max="1"
+                                step="0.05"
+                                value={variationStrength}
+                                onChange={(e) => {
+                                    setVariationStrength(
+                                        parseFloat(e.target.value)
+                                    );
+                                }}
+                            />
+                            <small className="form-text text-muted">
+                                How much variation to use
+                            </small>
+                        </div>
+                    )}
+                    {/* loras — not supported by Flux 2 */}
+                    {!isFlux2 && (
+                        <div className="form-group">
+                            <label htmlFor="loras">Loras</label>
+                            {selectedLoras.map(lora => (
+                                <SelectedLoraTag key={`selected-lora-${lora}`} lora={lora} onRemove={(lora) => setSelectedLoras(selectedLoras => selectedLoras.filter(selectedLora => selectedLora.name !== lora.name))} />
+                            ))}
+                            <button style={{marginTop: "8px"}} className="btn btn-primary btn-sm form-control" onClick={() => setSelectingLoras(true)}>
+                                <i className="fas fa-plus" />&nbsp;Add
+                            </button>
+                        </div>
+                    )}
                     {/* model */}
                     <div className="form-group">
                         {/* dropdown */}
@@ -773,20 +835,22 @@ export const EnhanceControls: FC<ControlsProps> = ({
                             ))}
                         </select>
                     </div>
-                    {/* accelerator checkbox */}
-                    <div className="form-group">
-                        <label htmlFor="accelerator">Accelerator</label>
-                        <div className="form-check">
-                            <input
-                                type="checkbox"
-                                id="accelerator"
-                                checked={accelerator}
-                                onChange={(e) => setAccelerator(e.target.checked)}
-                            />
+                    {/* accelerator checkbox — not supported by Flux 2 */}
+                    {!isFlux2 && (
+                        <div className="form-group">
+                            <label htmlFor="accelerator">Accelerator</label>
+                            <div className="form-check">
+                                <input
+                                    type="checkbox"
+                                    id="accelerator"
+                                    checked={accelerator}
+                                    onChange={(e) => setAccelerator(e.target.checked)}
+                                />
+                            </div>
                         </div>
-                    </div>
-                    {/* if we have reference images, allow the user to set the strength */}
-                    {hasReferenceImages && (
+                    )}
+                    {/* reference images — not supported by Flux 2 */}
+                    {!isFlux2 && hasReferenceImages && (
                         <div className="form-group">
                             <label htmlFor="reference-images-weight">
                                 Reference Images Weight:{" "}
@@ -879,39 +943,42 @@ export const EnhanceControls: FC<ControlsProps> = ({
                     </>
                 )}
                 {state === "confirm" && (
-                    <>
-                        <button
-                            className="btn btn-primary btn-sm"
-                            onClick={() => {
-                                tool.updateArgs({
-                                    variationStrength,
-                                    prompt,
-                                    negativePrompt,
-                                    referenceImagesWeight,
-                                    selectedLoras: JSON.parse(JSON.stringify(selectedLoras)),
-                                    selectedModel,
-                                    accelerator,
-                                });
-                                tool.submit();
-                            }}
-                            style={{ marginRight: "8px" }}
-                        >
-                            {/* retry button */}
-                            <i className="fa fa-redo"></i>&nbsp; Retry
-                        </button>
-                    </>
+                    <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => {
+                            tool.updateArgs({
+                                variationStrength,
+                                prompt,
+                                negativePrompt,
+                                referenceImagesWeight,
+                                selectedLoras: JSON.parse(JSON.stringify(selectedLoras)),
+                                selectedModel,
+                                accelerator,
+                            });
+                            tool.submit();
+                        }}
+                        style={{ marginRight: "8px" }}
+                    >
+                        <i className="fa fa-redo"></i>&nbsp; Retry
+                    </button>
                 )}
                 {state === "confirm" && (
-                    <>
-                        <button
-                            className="btn btn-danger btn-sm"
-                            onClick={() => tool.deleteSelected()}
-                            style={{ marginRight: "8px" }}
-                        >
-                            {/* delete button */}
-                            <i className="fa fa-trash"></i>&nbsp; Delete
-                        </button>
-                    </>
+                    <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => tool.editPrompt()}
+                        style={{ marginRight: "8px" }}
+                    >
+                        <i className="fa fa-pen"></i>&nbsp; Edit Prompt
+                    </button>
+                )}
+                {state === "confirm" && (
+                    <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => tool.deleteSelected()}
+                        style={{ marginRight: "8px" }}
+                    >
+                        <i className="fa fa-trash"></i>&nbsp; Delete
+                    </button>
                 )}
                 {state === "default" && (
                     <>
@@ -940,6 +1007,15 @@ export const EnhanceControls: FC<ControlsProps> = ({
                         >
                             <i className="fa fa-cut"></i>&nbsp; Mask
                         </button>
+                        {!isMasked && hasSavedMask && (
+                            <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => tool.reapplyMask()}
+                                style={{ marginRight: "8px" }}
+                            >
+                                <i className="fa fa-undo"></i>&nbsp; Reapply Mask
+                            </button>
+                        )}
                         {isMasked && (
                             <button
                                 className="btn btn-danger btn-sm"

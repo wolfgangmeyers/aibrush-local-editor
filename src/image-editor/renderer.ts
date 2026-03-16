@@ -700,6 +700,22 @@ export class Renderer {
         }
     }
 
+    setMaskImageData(maskImageData: ImageData) {
+        const context = this.maskLayer!.getContext("2d");
+        if (context) {
+            context.putImageData(maskImageData, this.selectionOverlay!.x, this.selectionOverlay!.y);
+            this.render();
+        }
+    }
+
+    getRawMaskImageData(selection: Rect): ImageData | undefined {
+        if (!this.maskLayer) return;
+        const context = this.maskLayer.getContext("2d");
+        if (context) {
+            return context.getImageData(selection.x, selection.y, selection.width, selection.height);
+        }
+    }
+
     getImageData(
         selection: Rect | null,
         layer: "base" | "mask" = "base"
