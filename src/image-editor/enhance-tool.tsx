@@ -376,7 +376,7 @@ export class EnhanceTool extends BaseTool implements Tool {
         );
         if (maskData) {
             applyAlphaMask(imageData, maskData, true);
-        } 
+        }
         featherEdges(selectionOverlay, this.renderer.getWidth(), this.renderer.getHeight(), imageData);
         
 
@@ -436,8 +436,13 @@ export class EnhanceTool extends BaseTool implements Tool {
     }
 
     editPrompt() {
-        // Go back to default state to edit prompt, preserving mask
+        // Go back to default state to edit prompt, restoring saved mask
         this.renderer.setEditImage(null);
+        if (this.savedMaskImageData) {
+            this.renderer.createMask();
+            this.renderer.setMaskImageData(this.savedMaskImageData);
+            this.maskHandler(true);
+        }
         this.state = "default";
     }
 
