@@ -517,7 +517,9 @@ export class Flux2ImageEdit {
 
     set_model(unet_name: string) {
         this.node("Load Diffusion Model").inputs.unet_name = unet_name;
-        if (unet_name.toLowerCase().includes("klein")) {
+        if (unet_name.toLowerCase().includes("klein-4b")) {
+            this.node("Load CLIP").inputs.clip_name = "qwen_3_4b.safetensors";
+        } else if (unet_name.toLowerCase().includes("klein")) {
             this.node("Load CLIP").inputs.clip_name = "qwen_3_8b_fp8mixed.safetensors";
         }
     }
