@@ -359,6 +359,18 @@ export class Renderer {
         }
     }
 
+    createBlankBaseImage(width: number, height: number) {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        if (context) {
+            context.fillStyle = "white";
+            context.fillRect(0, 0, width, height);
+        }
+        this.setBaseImage(canvas);
+    }
+
     resetView() {
         // Determine the aspect ratios of the image and canvas
         const imageAspectRatio = this.width / this.height;

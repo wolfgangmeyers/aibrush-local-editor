@@ -486,6 +486,15 @@ export class EnhanceTool extends BaseTool implements Tool {
             this.renderer.createMask();
             this.renderer.setMaskImageData(this.savedMaskImageData);
         }
+        const hasBaseImage = this.renderer.getWidth() > 0 && this.renderer.getHeight() > 0;
+        if (!hasBaseImage) {
+            if (this.isFlux2()) {
+                this.renderer.createBlankBaseImage(1024, 1024);
+            } else {
+                this.notifyError("Load an image first.");
+                return;
+            }
+        }
         const selectionOverlay = this.renderer.getSelectionOverlay();
         let encodedImage = this.renderer.getEncodedImage(
             selectionOverlay!,

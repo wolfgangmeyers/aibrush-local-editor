@@ -18,6 +18,9 @@ export class WebsocketHelper {
         const ws = new WebSocket(this.url);
         console.log(`WebSocket opened for prompt_id: ${this.promptId}`);
         ws.onmessage = (event) => {
+            if (typeof event.data !== "string") {
+                return;
+            }
             const result = JSON.parse(event.data);
             
             // Log all executed messages to debug
